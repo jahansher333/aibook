@@ -1,0 +1,102 @@
+{
+  "collection_name": "textbook_chunks",
+  "description": "Physical AI & Humanoid Robotics textbook content chunks with Cohere embeddings",
+  "vectors_config": {
+    "size": 1024,
+    "distance": "Cosine"
+  },
+  "hnsw_config": {
+    "m": 16,
+    "ef_construct": 100
+  },
+  "optimizers_config": {
+    "indexing_threshold": 20000
+  },
+  "payload_schema": {
+    "chapter_id": {
+      "type": "keyword",
+      "index": true,
+      "description": "Chapter identifier (e.g., 'ch01', 'ch02')"
+    },
+    "chapter_title": {
+      "type": "text",
+      "index": true,
+      "description": "Full chapter title"
+    },
+    "section_title": {
+      "type": "text",
+      "index": true,
+      "description": "Section heading within chapter"
+    },
+    "content": {
+      "type": "text",
+      "index": false,
+      "description": "Textbook content (512 tokens max)"
+    },
+    "token_count": {
+      "type": "integer",
+      "index": false,
+      "description": "Exact token count via tiktoken"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "chunk_index": {
+          "type": "integer",
+          "description": "0-indexed chunk position within chapter"
+        },
+        "heading_level": {
+          "type": "integer",
+          "description": "Markdown heading level (1-6)"
+        },
+        "has_code": {
+          "type": "boolean",
+          "description": "Contains code blocks"
+        },
+        "has_diagram": {
+          "type": "boolean",
+          "description": "Contains mermaid diagrams"
+        }
+      }
+    }
+  },
+  "example_point": {
+    "id": "ch02-section3-chunk1",
+    "vector": [0.023, -0.891, ...],
+    "payload": {
+      "chapter_id": "ch02",
+      "chapter_title": "ROS 2 Fundamentals",
+      "section_title": "Installing ROS 2 Humble",
+      "content": "To install ROS 2 Humble on Ubuntu 22.04, first add the ROS 2 apt repository by running...",
+      "token_count": 487,
+      "metadata": {
+        "chunk_index": 1,
+        "heading_level": 3,
+        "has_code": true,
+        "has_diagram": false
+      }
+    }
+  },
+  "search_example": {
+    "query_vector": [0.045, -0.721, ...],
+    "limit": 5,
+    "score_threshold": 0.6,
+    "filter": {
+      "must": [
+        {
+          "key": "chapter_id",
+          "match": {
+            "value": "ch02"
+          }
+        }
+      ]
+    }
+  },
+  "api_endpoints": {
+    "create_collection": "PUT /collections/{collection_name}",
+    "upsert_points": "PUT /collections/{collection_name}/points",
+    "search": "POST /collections/{collection_name}/points/search",
+    "get_point": "GET /collections/{collection_name}/points/{id}",
+    "delete_collection": "DELETE /collections/{collection_name}"
+  }
+}

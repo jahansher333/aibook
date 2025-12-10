@@ -1,0 +1,228 @@
+# Personalization System API Contract
+
+## Overview
+API contract for the personalization system. While the core personalization happens client-side, there are API endpoints needed for profile management and integration with the existing system.
+
+## Profile API Endpoints
+
+### GET /api/profile/{userId}
+Retrieve user profile data for personalization
+
+**Request**:
+```
+GET /api/profile/12345
+Authorization: Bearer {token}
+```
+
+**Response**:
+```json
+{
+  "id": "12345",
+  "hardware_experience": "intermediate",
+  "gpu_access": "midrange",
+  "ros2_knowledge": "basic",
+  "learning_goal": "career_transition",
+  "python_level": "intermediate",
+  "learning_environment": "cloud_preferred",
+  "profile_hash": "a1b2c3d4e5f6...",
+  "timestamp": "2025-12-10T10:30:00Z"
+}
+```
+
+**Status Codes**:
+- 200: Success
+- 401: Unauthorized
+- 404: Profile not found
+- 500: Server error
+
+### PUT /api/profile/{userId}
+Update user profile data
+
+**Request**:
+```
+PUT /api/profile/12345
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "hardware_experience": "proficient",
+  "gpu_access": "highend",
+  "ros2_knowledge": "intermediate",
+  "learning_goal": "professional",
+  "python_level": "advanced",
+  "learning_environment": "local_preferred"
+}
+```
+
+**Response**:
+```json
+{
+  "id": "12345",
+  "hardware_experience": "proficient",
+  "gpu_access": "highend",
+  "ros2_knowledge": "intermediate",
+  "learning_goal": "professional",
+  "python_level": "advanced",
+  "learning_environment": "local_preferred",
+  "profile_hash": "f6e5d4c3b2a1...",
+  "timestamp": "2025-12-10T11:00:00Z"
+}
+```
+
+**Status Codes**:
+- 200: Success
+- 400: Invalid profile data
+- 401: Unauthorized
+- 500: Server error
+
+## Frontend Component Contracts
+
+### PersonalizeButton Component
+**Props Interface**:
+```typescript
+interface PersonalizeButtonProps {
+  chapterId: string;        // Unique identifier for the chapter
+  onPersonalize?: (isPersonalized: boolean) => void;  // Callback when personalization state changes
+}
+```
+
+**Behavior Contract**:
+1. When user is not authenticated:
+   - Display "Sign in to Personalize" button
+   - On click, show authentication prompt
+2. When user is authenticated:
+   - Display "Personalize this chapter" button (or "Show Original Content" if personalized)
+   - On click, trigger personalization flow
+3. During personalization:
+   - Show loading state with spinner
+   - Preserve scroll position
+   - Update button text to reflect current state
+4. After personalization:
+   - Update content based on user profile
+   - Show visual indicator of personalization
+   - Update button to "Show Original Content"
+
+### ProfileProvider Context
+**Context Interface**:
+```typescript
+interface ProfileContextType {
+  profile: UserProfile | null;    // Current user profile
+  loading: boolean;               // Whether profile is being loaded
+  error: string | null;           // Error message if profile loading failed
+  refreshProfile: () => Promise<void>;  // Function to reload profile
+}
+```
+
+**Behavior Contract**:
+1. On initialization:
+   - Attempt to load profile from cache
+   - If not in cache, fetch from API
+2. When profile is available:
+   - Make it accessible via useProfile hook
+   - Cache in localStorage with expiration
+3. When profile is not available:
+   - Set loading to false
+   - Return null profile
+4. When refreshProfile is called:
+   - Fetch fresh profile from API
+   - Update cache
+   - Update context value
+
+### Personalization Rules Format
+**Rule Interface**:
+```typescript
+interface PersonalizationRule {
+  rule_id: string;                    // Unique identifier for the rule
+  profile_key: string;                // Profile field to match against
+  profile_value: string | string[];   // Expected value(s) for the profile field
+  content_selector: string;           // CSS selector for content to transform
+  transformation_type: 'show' | 'hide' | 'emphasize' | 'replace_text' | 'add_content';  // Type of transformation
+  parameters?: Record<string, any>;   // Additional parameters for the transformation
+}
+```
+
+**Rule Evaluation Contract**:
+1. For each rule:
+   - Check if user's profile[profile_key] matches profile_value
+   - If match, apply transformation of transformation_type
+   - Use content_selector to identify content elements
+   - Apply parameters if provided
+2. Rules are evaluated in sequence
+3. Multiple rules can apply to the same content element
+4. Results are combined appropriately (e.g., multiple hide rules result in hidden content)
+
+## Content Transformation Contract
+
+### Transformation Types
+
+1. **Show/Hide Transformation**:
+   - `transformation_type: 'show'` - Makes content visible
+   - `transformation_type: 'hide'` - Hides content using CSS display:none
+   - Selector targets specific content elements
+   - Preserves content in DOM while changing visibility
+
+2. **Emphasize Transformation**:
+   - `transformation_type: 'emphasize'` - Highlights important content
+   - May add CSS classes for visual emphasis
+   - Could add visual indicators or borders
+
+3. **Replace Text Transformation**:
+   - `transformation_type: 'replace_text'` - Replaces specific text
+   - Parameters include old_text and new_text
+   - Preserves surrounding content structure
+
+4. **Add Content Transformation**:
+   - `transformation_type: 'add_content'` - Injects additional content
+   - Parameters include content to add and position (prepend/append)
+   - Content is added based on selector location
+
+## Integration Contracts
+
+### Urdu Translation Integration
+**Contract Requirements**:
+1. Personalized content must remain translatable
+2. Translation cache keys must include profile_hash
+3. Original and personalized content should have separate translation caches
+4. When toggling between states, appropriate translation should be displayed
+
+**Cache Key Format**:
+- Original: `{chapterId}_original_urdu`
+- Personalized: `{chapterId}_personalized_{profileHash}_urdu`
+
+### Docusaurus Integration
+**Component Placement Contract**:
+1. PersonalizeButton appears in chapter header area
+2. Components work within Docusaurus MDX pages
+3. Maintain Docusaurus styling and layout
+4. Responsive design for mobile and desktop
+
+## Error Handling Contract
+
+### Client-Side Error Handling
+1. Profile loading errors:
+   - Use default profile
+   - Show user-friendly error message
+   - Provide option to retry
+
+2. Personalization errors:
+   - Preserve original content
+   - Show error message
+   - Maintain button functionality
+
+3. Network errors:
+   - Use cached profile if available
+   - Show appropriate messaging
+   - Allow offline usage with cached data
+
+## Performance Contract
+
+### Time Requirements
+1. Profile loading: <1000ms
+2. Content personalization: <500ms
+3. Content toggle: <100ms
+4. Initial page load impact: <5% increase
+
+### Resource Requirements
+1. Memory usage: <10MB for cached data
+2. Bundle size increase: <100KB
+3. DOM manipulation efficiency: O(n) where n is content sections

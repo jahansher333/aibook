@@ -1,0 +1,250 @@
+schema: Supported Mermaid Diagram Types
+description: Mermaid diagram types supported via @docusaurus/theme-mermaid plugin for Physical AI textbook
+
+supported_types:
+  - type: flowchart
+    description: Directed graph for system architecture, data flow, ROS 2 node communication
+    syntax: graph LR | TD | RL | BT
+    mermaid_docs: https://mermaid.js.org/syntax/flowchart.html
+    use_cases:
+      - ROS 2 node communication patterns (publisher-subscriber, service-client)
+      - Data flow through robot perception pipeline (sensors → processing → actuators)
+      - System architecture diagrams (Isaac Sim, Gazebo, ROS 2 integration)
+    example: |
+      ```mermaid
+      graph LR
+          A[Camera Node] -->|/image_raw topic| B[Object Detection Node]
+          B -->|/detected_objects topic| C[Planning Node]
+          C -->|/cmd_vel topic| D[Robot Base]
+      ```
+    best_practices:
+      - Use descriptive node labels (not A, B, C)
+      - Limit to <10 nodes for readability
+      - Use LR (left-to-right) for horizontal flow, TD (top-down) for hierarchical
+      - Label edges with topic names (e.g., |/cmd_vel|)
+
+  - type: sequence
+    description: Sequence diagram for time-ordered interactions (service calls, API requests, control flow)
+    syntax: sequenceDiagram
+    mermaid_docs: https://mermaid.js.org/syntax/sequenceDiagram.html
+    use_cases:
+      - ROS 2 service call flow (client → server → response)
+      - Isaac Sim action sequence (plan → execute → feedback)
+      - Hardware integration protocol (Jetson → RealSense → data stream)
+    example: |
+      ```mermaid
+      sequenceDiagram
+          participant Client as ROS 2 Client Node
+          participant Server as ROS 2 Service Server
+          Client->>Server: Request (add_two_ints: a=5, b=3)
+          activate Server
+          Server-->>Client: Response (sum=8)
+          deactivate Server
+          Client->>Client: Process result
+      ```
+    best_practices:
+      - Use participant aliases for long names (participant A as "Long Name")
+      - Show activation/deactivation (activate/deactivate) for clarity
+      - Use solid arrows (->>) for requests, dashed (-->) for responses
+      - Limit to 5-7 participants for readability
+
+  - type: class
+    description: Class diagram for object relationships (URDF link/joint, robot model structure)
+    syntax: classDiagram
+    mermaid_docs: https://mermaid.js.org/syntax/classDiagram.html
+    use_cases:
+      - URDF robot model structure (links, joints, relationships)
+      - ROS 2 node class hierarchies (inheritance, composition)
+      - Data model relationships (Chapter, MCQ, HardwareTier entities)
+    example: |
+      ```mermaid
+      classDiagram
+          Link <|-- RevoluteJoint : child
+          Link <|-- PrismaticJoint : child
+          Link : +String name
+          Link : +Vector3 position
+          RevoluteJoint : +float axis
+          RevoluteJoint : +float limit_upper
+          PrismaticJoint : +float travel_distance
+      ```
+    best_practices:
+      - Use inheritance (<|--) for is-a relationships
+      - Use composition (*--) for has-a relationships
+      - Use aggregation (o--) for weak has-a relationships
+      - Show only key attributes (not every field)
+
+  - type: stateDiagram
+    description: State machine for robot behavior (navigation states, manipulation phases)
+    syntax: stateDiagram-v2
+    mermaid_docs: https://mermaid.js.org/syntax/stateDiagram.html
+    use_cases:
+      - Robot navigation states (Idle → Navigating → Goal Reached)
+      - Manipulation phases (Approach → Grasp → Lift → Place)
+      - VLA model pipeline states (Listen → Understand → Plan → Execute)
+    example: |
+      ```mermaid
+      stateDiagram-v2
+          [*] --> Idle
+          Idle --> Navigating: start_navigation
+          Navigating --> Avoiding_Obstacle: obstacle_detected
+          Avoiding_Obstacle --> Navigating: obstacle_cleared
+          Navigating --> Goal_Reached: goal_reached
+          Goal_Reached --> [*]
+      ```
+    best_practices:
+      - Use state names without spaces (use underscores)
+      - Show transitions with descriptive events (start_navigation, not "go")
+      - Indicate initial ([*] -->) and final (-->[*]) states
+      - Limit to 5-8 states for clarity
+
+  - type: gantt
+    description: Timeline diagram for project phases, course schedule (optional, not primary use)
+    syntax: gantt
+    mermaid_docs: https://mermaid.js.org/syntax/gantt.html
+    use_cases:
+      - Course timeline (Weeks 1-13 chapter progression)
+      - Capstone project milestones
+    example: |
+      ```mermaid
+      gantt
+          title Physical AI Course Schedule
+          dateFormat  YYYY-MM-DD
+          section Fundamentals
+          ROS 2 Basics          :a1, 2025-01-01, 7d
+          Robot Modeling        :a2, after a1, 7d
+          section Simulation
+          Gazebo                :b1, after a2, 7d
+          Isaac Sim             :b2, after b1, 7d
+          section Advanced
+          VLA Models            :c1, after b2, 7d
+          Capstone              :c2, after c1, 14d
+      ```
+    best_practices:
+      - Use for high-level timelines only (not detailed task breakdowns)
+      - Keep sections clear (Fundamentals, Simulation, Advanced)
+      - Use consistent duration units (days or weeks)
+
+unsupported_types:
+  - type: pie
+    reason: Not educational (use tables for data comparison)
+  - type: git
+    reason: Too complex for docs (use flowchart instead)
+  - type: mindmap
+    reason: Experimental, unstable syntax
+
+rendering:
+  build_time: Mermaid diagrams rendered to SVG at build time (not runtime)
+  performance: No JavaScript overhead (static SVG)
+  fallback: If Mermaid syntax error, shows error message in dev mode, blank in production
+  dark_mode: Automatically adapts to Docusaurus dark mode (uses CSS variables)
+
+configuration:
+  docusaurus_config: |
+    // docusaurus.config.js
+    module.exports = {
+      themes: ['@docusaurus/theme-mermaid'],
+      markdown: {
+        mermaid: true,
+      },
+      themeConfig: {
+        mermaid: {
+          theme: { light: 'default', dark: 'dark' },
+          options: {
+            maxTextSize: 50000, // Increase limit for large diagrams
+            maxEdges: 200,      // Increase edge limit
+          },
+        },
+      },
+    };
+
+testing_diagrams:
+  tool: Mermaid Live Editor
+  url: https://mermaid.live/
+  workflow:
+    - Copy diagram code from MDX
+    - Paste into Mermaid Live Editor
+    - Check for syntax errors (red error message)
+    - Fix syntax, preview rendering
+    - Copy corrected code back to MDX
+
+common_errors:
+  missing_arrow: |
+    ❌ Wrong:
+    ```mermaid
+    graph LR
+        A B
+    ```
+    ✅ Correct:
+    ```mermaid
+    graph LR
+        A --> B
+    ```
+
+  invalid_node_label: |
+    ❌ Wrong (spaces in node ID):
+    ```mermaid
+    graph LR
+        Publisher Node --> Subscriber
+    ```
+    ✅ Correct (use quotes for labels with spaces):
+    ```mermaid
+    graph LR
+        A["Publisher Node"] --> B[Subscriber]
+    ```
+
+  unclosed_code_fence: |
+    ❌ Wrong:
+    ```mermaid
+    graph LR
+        A --> B
+    (missing closing ```)
+
+    ✅ Correct:
+    ```mermaid
+    graph LR
+        A --> B
+    ```
+
+  wrong_syntax_type: |
+    ❌ Wrong (using flowchart syntax in sequenceDiagram):
+    ```mermaid
+    sequenceDiagram
+        A --> B
+    ```
+    ✅ Correct:
+    ```mermaid
+    sequenceDiagram
+        A->>B: Message
+    ```
+
+accessibility:
+  - SVG diagrams have ARIA labels (role="img", aria-label="Diagram description")
+  - Provide text description below complex diagrams (for screen readers)
+  - Ensure sufficient color contrast (avoid light gray on white)
+  - Example:
+    ```markdown
+    ```mermaid
+    graph LR
+        A[Sensor] --> B[Processor]
+    ```
+
+    **Description**: Data flows from Sensor node to Processor node via /data topic.
+    ```
+
+performance:
+  bundle_size: Mermaid renderer ~200KB (loaded once per site, not per page)
+  render_time: <100ms per diagram (build time, not runtime)
+  page_load: No impact (SVG is static)
+
+best_practices_summary:
+  - Use flowcharts for architecture (ROS 2 nodes, system components)
+  - Use sequence diagrams for protocols (service calls, action flows)
+  - Use class diagrams for data models (URDF structure, entities)
+  - Use state diagrams for robot behavior (navigation, manipulation)
+  - Keep diagrams simple (<10 nodes, <15 edges)
+  - Test all diagrams in Mermaid Live Editor before committing
+  - Provide text descriptions for accessibility
+  - Use descriptive labels (not A, B, C)
+
+version: 1.0.0
+last_updated: 2025-12-09

@@ -1,0 +1,201 @@
+/**
+ * Shared Auth Component Styles
+ * Used by SignUpForm and LoginForm
+ */
+
+.authContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 2rem 1rem;
+}
+
+.authForm {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.authForm h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: var(--ifm-color-primary);
+}
+
+.formGroup {
+  margin-bottom: 1.25rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--ifm-font-color-base);
+}
+
+.formGroup input[type="email"],
+.formGroup input[type="password"],
+.formGroup input[type="text"],
+.formGroup select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  font-size: 1rem;
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  transition: border-color 0.2s ease;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--ifm-color-primary-rgb), 0.1);
+}
+
+.formGroup input:disabled,
+.formGroup select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.formGroup input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+.stepDescription {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: var(--ifm-color-primary-lightest);
+  border-left: 3px solid var(--ifm-color-primary);
+  font-size: 0.95rem;
+  color: var(--ifm-color-primary-darkest);
+}
+
+.primaryButton {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--ifm-color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--ifm-color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.primaryButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  padding: 0.875rem 1.5rem;
+  background: transparent;
+  color: var(--ifm-color-primary);
+  border: 2px solid var(--ifm-color-primary);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: var(--ifm-color-primary-lightest);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.buttonGroup .secondaryButton {
+  flex: 1;
+}
+
+.buttonGroup .primaryButton {
+  flex: 2;
+  width: auto;
+}
+
+.errorMessage {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--ifm-color-danger-lightest);
+  border: 1px solid var(--ifm-color-danger);
+  border-radius: 4px;
+  color: var(--ifm-color-danger-darkest);
+  font-size: 0.9rem;
+}
+
+.successMessage {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--ifm-color-success-lightest);
+  border: 1px solid var(--ifm-color-success);
+  border-radius: 4px;
+  color: var(--ifm-color-success-darkest);
+  font-size: 0.9rem;
+}
+
+.formFooter {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.link {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: var(--ifm-color-primary-dark);
+  text-decoration: underline;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .authForm {
+    padding: 1.5rem;
+  }
+
+  .buttonGroup {
+    flex-direction: column;
+  }
+
+  .buttonGroup .secondaryButton,
+  .buttonGroup .primaryButton {
+    width: 100%;
+  }
+}

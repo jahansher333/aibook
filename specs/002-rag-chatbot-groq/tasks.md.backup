@@ -1,0 +1,846 @@
+# Implementation Tasks: Groq-Powered RAG Chatbot
+
+**Feature**: 002-rag-chatbot-groq
+**Branch**: `002-rag-chatbot-groq`
+**Date**: 2025-12-09
+**Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md)
+
+## Task Summary
+
+**Total Tasks**: 52
+**Estimated Duration**: 9 days (7 dev + 2 test/polish)
+
+**User Story Breakdown**:
+- **US1** (P1 - Query Textbook Content): 18 tasks
+- **US2** (P2 - Context-Aware Query): 6 tasks
+- **US3** (P3 - Conversation History): 7 tasks
+- **US4** (P1 - Fast Response Times): Integrated across US1 tasks
+- **Setup**: 11 tasks
+- **Foundational**: 10 tasks
+
+**Parallel Opportunities**: 34 tasks marked [P] can run in parallel within their phase
+
+---
+
+## Phase 1: Setup & Prerequisites
+
+**Goal**: Initialize project structure, configure external services, set up development environment
+
+**Duration**: 0.5 days
+
+### External Services Setup
+
+- [ ] T001 Create Qdrant Cloud free tier cluster at https://cloud.qdrant.io
+  - Create account → New cluster → Select free tier (1GB)
+  - Copy cluster URL (e.g., https://xxx.us-east.aws.cloud.qdrant.io:6333)
+  - Generate API key → Copy to secure location
+  - **Verify**: Run `curl -X GET "$QDRANT_URL/collections" -H "api-key: $QDRANT_API_KEY"` returns `{"result":{"collections":[]}}`
+
+- [ ] T002 Create Neon Postgres project at https://console.neon.tech
+  - Create account → New project → Name: "rag-chatbot-dev"
+  - Select region: us-east-2 (or closest)
+  - Copy connection string (postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb)
+  - **Verify**: Run `psql $NEON_DATABASE_URL -c "SELECT version();"` returns PostgreSQL version
+
+- [ ] T003 Obtain Groq API key from https://console.groq.com
+  - Create account → API Keys → Create new key
+  - Copy key (starts with `gsk_`)
+  - **Verify**: Run `curl https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY"` returns model list
+
+- [ ] T004 Obtain Cohere API key from https://dashboard.cohere.com
+  - Create account → API Keys → Copy Production key
+  - **Verify**: Run `curl -X POST https://api.cohere.ai/v1/embed -H "Authorization: Bearer $COHERE_API_KEY" -d '{"texts":["test"],"model":"embed-english-v3.0"}'` returns embeddings
+
+### Project Structure Setup
+
+- [ ] T005 Create backend directory structure per plan.md
+  ```bash
+  mkdir -p backend/app/{rag,agents,routes,utils}
+  mkdir -p backend/{scripts,tests}
+  touch backend/app/{__init__.py,main.py,config.py,models.py,schemas.py,database.py,qdrant_client.py}
+  touch backend/app/rag/{__init__.py,ingestion.py,retrieval.py,llm_client.py,agent_tools.py}
+  touch backend/app/agents/{__init__.py,rag_agent.py,config.yaml}
+  touch backend/app/routes/{__init__.py,chat.py,search.py,session.py,feedback.py}
+  touch backend/app/utils/{__init__.py,rate_limiter.py,sanitizer.py,logger.py}
+  ```
+  - **Verify**: Run `tree backend/` shows complete structure
+
+- [ ] T006 Create backend/requirements.txt with dependencies
+  ```
+  fastapi==0.104.1
+  uvicorn[standard]==0.24.0
+  litellm==1.17.0
+  openai==1.6.1
+  qdrant-client==1.7.0
+  psycopg[binary]==3.1.15
+  sqlalchemy==2.0.23
+  pydantic==2.5.2
+  pydantic-settings==2.1.0
+  python-dotenv==1.0.0
+  cohere==4.37
+  tiktoken==0.5.2
+  python-multipart==0.0.6
+  aiofiles==23.2.1
+  pytest==7.4.3
+  pytest-asyncio==0.21.1
+  httpx==0.25.2
+  ```
+
+- [ ] T007 Create backend/.env.example template
+  ```
+  GROQ_API_KEY=gsk_your_key_here
+  COHERE_API_KEY=your_cohere_key
+  QDRANT_URL=https://your-cluster.qdrant.io:6333
+  QDRANT_API_KEY=your_qdrant_key
+  NEON_DATABASE_URL=postgresql://user:pass@host/db
+  ENVIRONMENT=development
+  LOG_LEVEL=INFO
+  LITELLM_MODEL=groq/llama-3.1-70b-versatile
+  ```
+
+- [ ] T008 [P] Create backend Python virtual environment
+  ```bash
+  cd backend
+  python3.11 -m venv venv
+  source venv/bin/activate  # Windows: venv\Scripts\activate
+  pip install --upgrade pip
+  pip install -r requirements.txt
+  ```
+  - **Verify**: `pip list | grep fastapi` shows FastAPI installed
+
+- [ ] T009 [P] Create Docusaurus plugin directory structure
+  ```bash
+  mkdir -p docusaurus/src/components/ChatbotWidget
+  mkdir -p docusaurus/src/plugins/chatbot-plugin
+  touch docusaurus/src/components/ChatbotWidget/{index.tsx,ChatbotWidget.module.css,useChat.ts,useTextSelection.ts,CitationLink.tsx}
+  touch docusaurus/src/plugins/chatbot-plugin/{index.js,client-module.js}
+  ```
+
+- [ ] T010 [P] Install Docusaurus frontend dependencies
+  ```bash
+  cd docusaurus
+  npm install react-chat-widget@3.1.4 eventsource-parser@1.1.1
+  npm install --save-dev @types/react-chat-widget
+  ```
+  - **Verify**: `npm list react-chat-widget` shows version 3.1.4
+
+- [ ] T011 Create backend/.env from .env.example
+  - Copy .env.example → .env
+  - Fill in API keys from T001-T004
+  - **Verify**: `python -c "from app.config import settings; print(settings.GROQ_API_KEY[:10])"` prints key prefix
+
+---
+
+## Phase 2: Foundational Infrastructure
+
+**Goal**: Set up database schemas, core utilities, and shared services that all user stories depend on
+
+**Duration**: 1.5 days
+
+### Database Setup
+
+- [ ] T012 Implement backend/app/config.py with Pydantic settings
+  - Load environment variables using `pydantic-settings`
+  - Validate required keys (GROQ_API_KEY, COHERE_API_KEY, QDRANT_URL, NEON_DATABASE_URL)
+  - Add computed properties: `is_production`, `cors_origins`
+  - **Verify**: Import settings, access `settings.GROQ_API_KEY` without errors
+
+- [ ] T013 Implement backend/app/database.py with Neon connection pool
+  - Create SQLAlchemy engine with `create_async_engine`
+  - Configure connection pool: pool_size=10, max_overflow=20
+  - Add `get_db()` dependency for FastAPI routes
+  - **Verify**: Run `python -c "from app.database import engine; print(engine.url)"` shows Neon URL
+
+- [ ] T014 Implement backend/app/models.py with SQLAlchemy ORM models
+  - Define `Session` model (id, user_id, created_at, updated_at, last_message_at, total_messages)
+  - Define `Message` model (id, session_id, role, content, citations JSONB, timestamp, token_count, latency_ms)
+  - Define `Query` model (id, session_id, query, selected_text, retrieval_time_ms, llm_time_ms, total_time_ms, top_chunks JSONB, max_similarity, success, error_message, timestamp)
+  - Define `Feedback` model (id, message_id, feedback, timestamp)
+  - Add relationships and constraints per data-model.md
+  - **Verify**: Run `python -c "from app.models import Session, Message; print(Session.__tablename__)"` prints "sessions"
+
+- [ ] T015 Implement backend/scripts/setup_db.py to create Neon tables
+  ```python
+  from app.database import engine
+  from app.models import Base
+  async def setup():
+      async with engine.begin() as conn:
+          await conn.run_sync(Base.metadata.create_all)
+  # Run: python scripts/setup_db.py
+  ```
+  - **Verify**: Connect to Neon, run `\dt` shows 4 tables (sessions, messages, queries, feedback)
+
+- [ ] T016 Implement backend/app/qdrant_client.py wrapper
+  - Initialize `QdrantClient` with URL + API key from config
+  - Add `create_collection()` method (1024 dims, Cosine distance, HNSW index)
+  - Add `upsert_points()` batch method
+  - Add `search()` method (top_k, min_similarity, filter by chapter_id)
+  - **Verify**: Run `python -c "from app.qdrant_client import qdrant; print(qdrant.get_collections())"` returns empty list
+
+- [ ] T017 Create Qdrant collection "textbook_chunks"
+  - Run: `python -c "from app.qdrant_client import qdrant; qdrant.create_collection('textbook_chunks', 1024)"`
+  - **Verify**: Qdrant console shows collection with 0 points
+
+### Core Utilities
+
+- [ ] T018 [P] Implement backend/app/utils/rate_limiter.py
+  - Use in-memory dict with session_id → (count, window_start)
+  - Limit: 10 requests per minute per session
+  - Add `check_rate_limit(session_id)` function
+  - Raise `HTTPException(429)` if exceeded
+  - **Verify**: Unit test calling 11 times in 1 minute raises 429
+
+- [ ] T019 [P] Implement backend/app/utils/sanitizer.py
+  - Add `sanitize_query(text)` to strip HTML tags, limit length to 1000 chars
+  - Add `sanitize_selected_text(text)` to limit to 512 tokens using tiktoken
+  - Prevent injection: Escape special characters for LLM prompts
+  - **Verify**: Unit test with `<script>alert('xss')</script>` returns plain text
+
+- [ ] T020 [P] Implement backend/app/utils/logger.py
+  - Configure structured logging to stdout (JSON format)
+  - Add query logging function: `log_query(session_id, query, latency, success, error)`
+  - Store logs in Neon `queries` table
+  - **Verify**: Log test message, check Neon `queries` table has entry
+
+- [ ] T021 Implement backend/app/schemas.py with Pydantic request/response models
+  - Define `ChatRequest(session_id, query, selected_text?)`
+  - Define `SearchRequest(query, top_k=5, min_similarity=0.6)`
+  - Define `SearchResponse(chunks: List[ChunkResult])`
+  - Define `SessionResponse(session, messages)`
+  - **Verify**: Import schemas, validate sample data with `ChatRequest.model_validate(data)`
+
+---
+
+## Phase 3: User Story 1 - Query Textbook Content (P1)
+
+**Goal**: Core MVP - User can ask questions and receive cited answers with streaming
+
+**Independent Test**: Ask "What is Physical AI?" → Receive response with Chapter 1 citation → Click citation → Navigate to Chapter 1
+
+**Duration**: 3 days
+
+### Ingestion Pipeline
+
+- [ ] T022 [US1] Implement backend/app/rag/ingestion.py MDX parser
+  - Use regex to strip frontmatter (between `---` blocks)
+  - Extract chapter_id and chapter_title from frontmatter
+  - Remove code blocks (```...```) and mermaid diagrams
+  - Extract section titles (## headings)
+  - **Verify**: Parse ch01.md, print chapter_id="ch01", chapter_title="Introduction to Physical AI"
+
+- [ ] T023 [US1] Implement text chunker in backend/app/rag/ingestion.py
+  - Use `tiktoken` with `cl100k_base` encoding
+  - Split text into 512-token chunks with 50-token overlap
+  - Preserve paragraph boundaries (split on `\n\n`)
+  - Add metadata: chunk_index, heading_level, has_code, has_diagram
+  - **Verify**: Chunk sample text, verify each chunk ≤512 tokens
+
+- [ ] T024 [US1] Implement Cohere embedding in backend/app/rag/ingestion.py
+  - Call Cohere API: `co.embed(texts=[...], model="embed-english-v3.0", input_type="search_document")`
+  - Batch requests: 96 texts per call (API limit)
+  - Add retry logic: 3 retries with exponential backoff
+  - **Verify**: Embed single chunk, verify vector length=1024
+
+- [ ] T025 [US1] Implement backend/scripts/ingest_textbook.py script
+  - Accept `--chapters` arg: glob pattern for MDX files (default: ../docusaurus/docs/ch*/*.md)
+  - Parse all chapters → chunk → embed → upsert to Qdrant
+  - Show progress bar using `tqdm`
+  - Log ingestion stats to Neon `ingestion_metadata` table (timestamp, total_chunks, total_tokens)
+  - **Command**: `python scripts/ingest_textbook.py --chapters ../docusaurus/docs/ch*/*.md`
+  - **Verify**: Qdrant console shows ~60 points, Neon has ingestion log
+
+### RAG Retrieval
+
+- [ ] T026 [US1] Implement backend/app/rag/retrieval.py query embedding
+  - Call Cohere API: `co.embed(texts=[query], model="embed-english-v3.0", input_type="search_query")`
+  - Cache embeddings for 5 minutes using `functools.lru_cache`
+  - **Verify**: Embed "What is ROS 2?", verify vector length=1024
+
+- [ ] T027 [US1] Implement semantic search in backend/app/rag/retrieval.py
+  - Call `qdrant.search(collection="textbook_chunks", query_vector, limit=top_k, score_threshold=min_similarity)`
+  - Extract payload: chapter_id, chapter_title, section_title, content
+  - Sort by similarity descending
+  - **Verify**: Search "ROS 2" → returns chunks from ch02 with similarity >0.6
+
+- [ ] T028 [US1] Add context-aware retrieval in backend/app/rag/retrieval.py
+  - If `context_chapter` provided, add Qdrant filter: `{"must": [{"key": "chapter_id", "match": {"value": context_chapter}}]}`
+  - Boost same-chapter results: Multiply similarity by 1.2 for matching chapter
+  - **Verify**: Search with context_chapter="ch02" prioritizes ch02 chunks
+
+### LLM Integration
+
+- [ ] T029 [US1] Implement backend/app/rag/llm_client.py with LiteLLM
+  - Initialize LiteLLM with model=`groq/llama-3.1-70b-versatile`
+  - Add `stream_completion(system_prompt, user_query, chunks)` async generator
+  - Format chunks as context: `"Chunk 1 [Chapter X]: {content}\n\n..."`
+  - Yield tokens as they arrive from Groq API
+  - **Verify**: Call with test query, print streamed tokens in real-time
+
+- [ ] T030 [US1] Add retry logic to backend/app/rag/llm_client.py
+  - Catch `litellm.exceptions.RateLimitError`, `litellm.exceptions.Timeout`
+  - Retry 3 times with exponential backoff: 1s, 2s, 4s
+  - After 3 failures, raise `HTTPException(503, "LLM service unavailable")`
+  - **Verify**: Mock Groq failure, verify retries and final exception
+
+- [ ] T031 [US1] Implement system prompt template in backend/app/agents/config.yaml
+  ```yaml
+  system_prompt: |
+    You are a helpful AI assistant specialized in the Physical AI & Humanoid Robotics textbook.
+    Answer questions using ONLY the provided chunks. Always cite sources as [Chapter N: Title].
+    If info isn't in chunks, say "I don't have information about this in the textbook".
+  ```
+  - Load in llm_client.py using `yaml.safe_load()`
+
+### OpenAI Agents SDK Integration
+
+- [ ] T032 [US1] Implement backend/app/rag/agent_tools.py retrieval tool
+  - Define tool schema per contracts/agent-tools.yaml
+  - Add `retrieve_textbook_chunks(query, context_chapter?, top_k=5)` function
+  - Return: `{"chunks": [...], "query_embedding_time_ms": X, "search_time_ms": Y}`
+  - **Verify**: Call tool with "ROS 2", verify chunks returned
+
+- [ ] T033 [US1] Implement backend/app/agents/rag_agent.py with Agents SDK
+  - Initialize Agent with system prompt from config.yaml
+  - Bind retrieval tool using `agent.add_tool(retrieve_textbook_chunks)`
+  - Add `query(user_input)` method that invokes agent with LiteLLM backend
+  - Extract citations from agent response (parse `[Chapter N: Title]` patterns)
+  - **Verify**: Agent calls tool automatically when queried
+
+### API Routes
+
+- [ ] T034 [US1] Implement POST /api/session in backend/app/routes/session.py
+  - Create new `Session` record in Neon
+  - Return `{"session_id": uuid}`
+  - **Test**: `curl -X POST http://localhost:8000/api/session` returns session_id
+
+- [ ] T035 [US1] Implement GET /api/session/{session_id} in backend/app/routes/session.py
+  - Query Neon for session + messages (order by timestamp ASC)
+  - Return `{"session": {...}, "messages": [...]}`
+  - Handle 404 if session not found
+  - **Test**: `curl http://localhost:8000/api/session/{id}` returns session data
+
+- [ ] T036 [US1] Implement POST /api/search in backend/app/routes/search.py
+  - Accept `SearchRequest` body
+  - Call `retrieval.search(query, top_k, min_similarity)`
+  - Return `SearchResponse` with chunks
+  - **Test**: `curl -X POST http://localhost:8000/api/search -d '{"query":"ROS 2"}'` returns chunks
+
+- [ ] T037 [US1] Implement POST /api/chat in backend/app/routes/chat.py (SSE streaming)
+  - Accept `ChatRequest` body (session_id, query, selected_text?)
+  - Apply rate limiting: `check_rate_limit(session_id)`
+  - Sanitize input: `sanitize_query(query)`
+  - Embed query → search Qdrant → invoke RAG agent → stream response
+  - Send SSE events: `event: chunk\ndata: {token}\n\n`
+  - After streaming, send citation events: `event: citation\ndata: {chapter_id, similarity}\n\n`
+  - Send final event: `event: done\ndata: {}\n\n`
+  - Log query to Neon `queries` table
+  - Save messages to Neon `messages` table
+  - **Test**: `curl -N http://localhost:8000/api/chat -d '{"session_id":"xxx","query":"What is Physical AI?"}'` streams response
+
+- [ ] T038 [US1] Add CORS middleware to backend/app/main.py
+  - Allow origins: `["http://localhost:3000", "https://yourusername.github.io"]`
+  - Allow methods: `["GET", "POST", "OPTIONS"]`
+  - Allow headers: `["Content-Type", "X-Session-Id"]`
+  - **Verify**: Preflight OPTIONS request returns 200 with CORS headers
+
+- [ ] T039 [US1] Add error handling middleware to backend/app/main.py
+  - Catch all exceptions, log to Neon with traceback
+  - Return JSON: `{"error": "Internal server error", "detail": str(e)}`
+  - Handle `HTTPException` specially (return status + detail)
+  - **Verify**: Trigger error, check Neon logs + response format
+
+### Frontend ChatbotWidget
+
+- [ ] T040 [P] [US1] Implement docusaurus/src/components/ChatbotWidget/index.tsx
+  - Render `react-chat-widget` with custom launcher button (bottom-right)
+  - Add "Ask AI" button text + robot emoji
+  - Show/hide with state management
+  - Pass props: `title="Physical AI Chatbot"`, `subtitle="Ask questions about the textbook"`
+  - **Verify**: Component renders in Storybook or test page
+
+- [ ] T041 [P] [US1] Implement docusaurus/src/components/ChatbotWidget/useChat.ts hook
+  - Accept `sessionId` prop (generate with `crypto.randomUUID()`)
+  - On message submit: POST to `/api/chat` with query
+  - Parse SSE stream using `eventsource-parser`
+  - Handle events: `chunk` (append token), `citation` (store citation), `done` (finalize), `error` (show error)
+  - Return: `{messages, sendMessage, isStreaming, error}`
+  - **Verify**: Send message, console.log streamed tokens
+
+- [ ] T042 [P] [US1] Implement docusaurus/src/components/ChatbotWidget/CitationLink.tsx
+  - Accept props: `chapterId` (e.g., "ch01"), `chapterTitle`
+  - Render as link: `<a href={`/docs/${chapterId}`}>[{chapterTitle}]</a>`
+  - Style with blue underline, hover effect
+  - **Verify**: Click citation → navigates to chapter page
+
+- [ ] T043 [US1] Style docusaurus/src/components/ChatbotWidget/ChatbotWidget.module.css
+  - Position widget: `position: fixed; bottom: 20px; right: 20px; z-index: 1000`
+  - Chat window: `width: 350px; height: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.2)`
+  - Dark mode compatible: Use CSS variables `var(--ifm-background-color)`, `var(--ifm-font-color-base)`
+  - **Verify**: Widget displays correctly in light + dark mode
+
+- [ ] T044 [US1] Integrate ChatbotWidget into Docusaurus via plugin
+  - Create docusaurus/src/plugins/chatbot-plugin/index.js:
+  ```js
+  module.exports = function(context, options) {
+    return {
+      name: 'chatbot-plugin',
+      getClientModules() {
+        return [require.resolve('./client-module.js')];
+      },
+    };
+  };
+  ```
+  - Create docusaurus/src/plugins/chatbot-plugin/client-module.js:
+  ```js
+  import ChatbotWidget from '@site/src/components/ChatbotWidget';
+  export function onRouteDidUpdate() {
+    // Render widget on all docs pages
+    if (document.location.pathname.startsWith('/docs/')) {
+      // Mount React component
+    }
+  }
+  ```
+  - Register plugin in docusaurus.config.ts: `plugins: ['./src/plugins/chatbot-plugin']`
+  - **Verify**: Navigate to any chapter, chatbot widget appears
+
+### End-to-End Test
+
+- [ ] T045 [US1] Manual E2E test for User Story 1
+  1. Start backend: `cd backend && uvicorn app.main:app --reload`
+  2. Start frontend: `cd docusaurus && npm run start`
+  3. Open browser: http://localhost:3000/docs/ch01-physical-ai-intro/ch01
+  4. Click chatbot widget (bottom-right)
+  5. Type: "What is Physical AI?"
+  6. **Verify**: Response streams word-by-word within 200ms first token
+  7. **Verify**: Citation appears: [Chapter 1: Introduction to Physical AI]
+  8. Click citation link
+  9. **Verify**: Navigates to /docs/ch01-physical-ai-intro/ch01
+  - **Acceptance**: All 4 scenarios from spec.md pass
+
+---
+
+## Phase 4: User Story 2 - Context-Aware Query (P2)
+
+**Goal**: User can highlight text and ask questions about that specific content
+
+**Independent Test**: Highlight paragraph in Chapter 7 → Click "Ask about this" → Ask "Explain in simpler terms" → Receive contextual answer
+
+**Duration**: 1 day
+
+- [ ] T046 [P] [US2] Implement docusaurus/src/components/ChatbotWidget/useTextSelection.ts hook
+  - Listen to `mouseup` event on document
+  - Capture `window.getSelection().toString()`
+  - If selection length > 10 chars, show tooltip with "Ask about this" button
+  - Position tooltip near selection using `getBoundingClientRect()`
+  - Return: `{selectedText, showTooltip, clearSelection}`
+  - **Verify**: Highlight text → tooltip appears
+
+- [ ] T047 [US2] Add "Ask about this" button to tooltip
+  - Render button in useTextSelection tooltip
+  - On click: Open ChatbotWidget with `selected_text` pre-filled
+  - Clear selection after opening
+  - **Verify**: Click button → chatbot opens with context
+
+- [ ] T048 [US2] Update useChat hook to accept `selectedText` prop
+  - Pass `selected_text` in POST /api/chat body if provided
+  - Display selected text in chat as system message: "Context: {selected_text}"
+  - **Verify**: Selected text appears in chat before user query
+
+- [ ] T049 [US2] Update backend retrieval to prioritize context chapter
+  - In `/api/chat` route, extract chapter from selected_text (regex: `/docs/ch(\d+)-`)
+  - Pass `context_chapter` to retrieval tool
+  - **Verify**: Select text from ch07 → query retrieves ch07 chunks first
+
+- [ ] T050 [US2] Update system prompt to address selected text
+  - Modify agents/config.yaml:
+  ```yaml
+  context_mode_prompt: |
+    The user selected the following text: "{selected_text}"
+    Answer their question specifically about this selection first, then expand if needed.
+  ```
+  - **Verify**: Response references selected text explicitly
+
+- [ ] T051 [US2] Manual E2E test for User Story 2
+  1. Navigate to http://localhost:3000/docs/ch07-vla-models/ch07
+  2. Highlight paragraph about "Vision-Language-Action models"
+  3. Click "Ask about this" tooltip
+  4. **Verify**: Chatbot opens with selected text shown as context
+  5. Type: "Can you explain this in simpler terms?"
+  6. **Verify**: Response addresses highlighted content specifically
+  - **Acceptance**: All 4 scenarios from spec.md pass
+
+---
+
+## Phase 5: User Story 3 - Conversation History (P3)
+
+**Goal**: User can view past conversations and ask follow-up questions
+
+**Independent Test**: Ask "What is ROS 2?" → Close chatbot → Reopen → See previous message → Ask "How does it compare to ROS 1?" → Receive contextual answer
+
+**Duration**: 1 day
+
+- [ ] T052 [P] [US3] Add session persistence to useChat hook
+  - Store `sessionId` in `localStorage.getItem('chatbot_session_id')`
+  - On mount, check localStorage for existing session → load messages via GET /api/session/{id}
+  - On new session, POST /api/session → save session_id to localStorage
+  - **Verify**: Refresh page → previous messages still visible
+
+- [ ] T053 [P] [US3] Update backend /api/chat to maintain conversation context
+  - Before streaming, load last 5 messages from Neon `messages` table for session
+  - Include in LLM context: `[{role: "user", content: "..."}`, `{role: "assistant", content: "..."}]`
+  - **Verify**: Follow-up question "Can you give an example?" references previous answer
+
+- [ ] T054 [US3] Add "New Conversation" button to ChatbotWidget
+  - Render button in chat header
+  - On click: Clear localStorage session_id → POST /api/session for new session → clear messages state
+  - **Verify**: Click button → messages disappear, new session starts
+
+- [ ] T055 [US3] Implement conversation history list (optional UI enhancement)
+  - Add "View History" button that opens sidebar
+  - GET /api/session (list all sessions for user)
+  - Display: timestamp, first message preview (50 chars)
+  - On click: Load session messages
+  - **Verify**: History shows past conversations with timestamps
+
+- [ ] T056 [US3] Add session metadata updates to backend
+  - After each message, update `sessions.last_message_at = NOW()`, `total_messages += 2`
+  - **Verify**: Query Neon, check session metadata updated
+
+- [ ] T057 [US3] Add follow-up context to system prompt
+  - Modify agents/config.yaml:
+  ```yaml
+  follow_up_mode: |
+    Previous conversation:
+    {context}
+
+    User's new question: {query}
+    Use the conversation history to provide a contextual answer.
+  ```
+
+- [ ] T058 [US3] Manual E2E test for User Story 3
+  1. Ask "What is ROS 2?" → Receive answer
+  2. Close chatbot widget
+  3. Refresh page (F5)
+  4. Reopen chatbot
+  5. **Verify**: Previous message visible
+  6. Ask "How does it compare to ROS 1?"
+  7. **Verify**: Response references ROS 2 from previous answer
+  8. Click "New Conversation"
+  9. **Verify**: Messages cleared, fresh session
+  - **Acceptance**: All 4 scenarios from spec.md pass
+
+---
+
+## Phase 6: User Story 4 - Fast Response Times (P1)
+
+**Note**: US4 is cross-cutting and integrated across US1 tasks. This phase adds performance monitoring and optimization.
+
+**Duration**: 0.5 days
+
+- [ ] T059 [P] [US4] Add latency tracking to backend/app/routes/chat.py
+  - Measure `retrieval_time_ms` (embedding + search)
+  - Measure `llm_time_ms` (time to first token from Groq)
+  - Store in Neon `queries.retrieval_time_ms`, `queries.llm_time_ms`, `queries.total_time_ms`
+  - **Verify**: Query Neon, check latency fields populated
+
+- [ ] T060 [P] [US4] Add performance metrics endpoint GET /api/metrics
+  - Query Neon: `SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY llm_time_ms) AS p95_latency FROM queries`
+  - Return JSON: `{"p95_latency_ms": X, "total_queries": Y, "avg_latency_ms": Z}`
+  - **Test**: `curl http://localhost:8000/api/metrics` returns metrics
+
+- [ ] T061 [US4] Optimize Qdrant search with caching
+  - Add `functools.lru_cache(maxsize=100)` to `retrieval.embed_query()`
+  - Cache for 5 minutes (TTL using `cachetools.TTLCache`)
+  - **Verify**: Same query twice → second query faster (cache hit)
+
+- [ ] T062 [US4] Add Groq rate limit handling
+  - Catch `litellm.exceptions.RateLimitError`
+  - Return SSE error event: `event: error\ndata: {"message": "Rate limit exceeded. Please wait 60 seconds.", "retry_after": 60}\n\n`
+  - **Verify**: Trigger rate limit (30 req/min), check error message
+
+- [ ] T063 [US4] Manual performance test for User Story 4
+  1. Ask 10 different questions rapidly
+  2. Measure time-to-first-token for each (use browser DevTools Network tab)
+  3. **Verify**: 9 out of 10 queries <200ms first token (90% threshold)
+  4. Check GET /api/metrics
+  5. **Verify**: p95_latency <200ms
+  - **Acceptance**: All 4 scenarios from spec.md pass
+
+---
+
+## Phase 7: Deployment & Integration
+
+**Goal**: Deploy backend to Railway, integrate with GitHub Pages Docusaurus
+
+**Duration**: 0.5 days
+
+- [ ] T064 Create backend/Dockerfile for Railway deployment
+  ```dockerfile
+  FROM python:3.11-slim
+  WORKDIR /app
+  COPY requirements.txt .
+  RUN pip install --no-cache-dir -r requirements.txt
+  COPY app ./app
+  COPY scripts ./scripts
+  CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "$PORT"]
+  ```
+
+- [ ] T065 Create backend/railway.json config
+  ```json
+  {
+    "build": {"builder": "DOCKERFILE"},
+    "deploy": {
+      "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+      "healthcheckPath": "/health"
+    }
+  }
+  ```
+
+- [ ] T066 Add health check endpoint GET /health to backend/app/main.py
+  - Return `{"status": "healthy", "timestamp": datetime.now().isoformat()}`
+  - Check Qdrant connection, Neon connection
+  - **Test**: `curl http://localhost:8000/health` returns 200
+
+- [ ] T067 Deploy backend to Railway
+  1. Create account at railway.app
+  2. New Project → Deploy from GitHub repo
+  3. Select backend/ directory as root
+  4. Add environment variables (GROQ_API_KEY, etc.)
+  5. Deploy → Copy production URL (e.g., https://rag-chatbot-production.up.railway.app)
+  - **Verify**: `curl https://rag-chatbot-production.up.railway.app/health` returns 200
+
+- [ ] T068 Update docusaurus/.env.production with Railway URL
+  ```
+  REACT_APP_API_URL=https://rag-chatbot-production.up.railway.app
+  ```
+
+- [ ] T069 Test production deployment end-to-end
+  1. Open https://yourusername.github.io/docs/ch01-physical-ai-intro/ch01
+  2. Open chatbot widget
+  3. Ask "What is Physical AI?"
+  4. **Verify**: Response streams from Railway backend
+  5. **Verify**: Citation works, latency <200ms
+  - **Acceptance**: Production chatbot fully functional
+
+---
+
+## Phase 8: Polish & Testing
+
+**Goal**: Final quality checks, performance validation, documentation
+
+**Duration**: 1 day
+
+- [ ] T070 [P] Add POST /api/feedback endpoint to backend/app/routes/feedback.py
+  - Accept `{"message_id": uuid, "feedback": "helpful" | "unhelpful"}`
+  - Store in Neon `feedback` table
+  - **Test**: Send feedback, check Neon table
+
+- [ ] T071 [P] Add thumbs up/down buttons to ChatbotWidget
+  - Render buttons below each assistant message
+  - On click, POST to /api/feedback
+  - Show "Thanks for your feedback!" toast
+  - **Verify**: Click thumbs up → feedback logged to Neon
+
+- [ ] T072 [P] Add loading states to ChatbotWidget
+  - Show typing indicator while streaming: `<div class="typing-indicator"><span></span><span></span><span></span></div>`
+  - Animate dots with CSS keyframes
+  - **Verify**: Submit query → typing indicator shows → disappears when streaming starts
+
+- [ ] T073 [P] Add error handling to ChatbotWidget
+  - Catch SSE error events
+  - Display error message in chat: "Something went wrong. Please try again."
+  - Show retry button
+  - **Verify**: Trigger error (disconnect backend) → error message displays
+
+- [ ] T074 Run backend test suite
+  ```bash
+  cd backend
+  pytest tests/ -v --cov=app --cov-report=html
+  ```
+  - **Target**: >80% code coverage
+  - **Verify**: All tests pass, coverage report shows >80%
+
+- [ ] T075 Run frontend test suite
+  ```bash
+  cd docusaurus
+  npm run test
+  ```
+  - **Verify**: All Jest tests pass
+
+- [ ] T076 Run E2E tests with Playwright (if implemented)
+  - Test: Full query → stream → citation click flow
+  - Test: Text selection → context-aware query
+  - Test: Conversation history persistence
+  - **Verify**: All E2E tests pass
+
+- [ ] T077 Performance audit with Lighthouse
+  - Run on https://yourusername.github.io/docs/ch01-physical-ai-intro/ch01
+  - **Target**: Performance >90, Accessibility >90
+  - **Verify**: ChatbotWidget loads in <1s (Time-to-Interactive)
+
+- [ ] T078 Mobile responsiveness test
+  - Test on Chrome DevTools responsive mode (320px width)
+  - **Verify**: ChatbotWidget resizes correctly, no horizontal scroll
+  - **Verify**: Chat window fits screen, messages readable
+
+- [ ] T079 Dark mode compatibility test
+  - Toggle dark mode in Docusaurus
+  - **Verify**: ChatbotWidget colors adapt, no contrast issues
+  - **Verify**: Citations remain readable
+
+- [ ] T080 Update backend/README.md with deployment guide
+  - Add sections: Setup, Development, Testing, Deployment
+  - Include exact commands from quickstart.md
+  - **Verify**: Follow README from scratch, backend runs successfully
+
+- [ ] T081 Update root README.md with feature description
+  - Add "RAG Chatbot" section with screenshot
+  - Link to quickstart guide
+  - List key features: streaming, citations, context-aware, conversation history
+  - **Verify**: README accurately describes chatbot capabilities
+
+- [ ] T082 Final acceptance test: User Story 1-3 complete validation
+  - Execute all manual E2E tests from T045, T051, T058
+  - **Verify**: All 12 acceptance scenarios pass (4 per user story)
+  - **Verify**: Performance metrics meet SC-001 to SC-010 from spec.md
+
+---
+
+## Dependency Graph
+
+### User Story Completion Order
+
+```
+Phase 1 (Setup) → Phase 2 (Foundational) → {
+  Phase 3 (US1 - P1) [REQUIRED FOR MVP]
+  ↓
+  Phase 4 (US2 - P2) [CAN START AFTER US1 CORE, DEPENDS ON: T040-T044]
+  ↓
+  Phase 5 (US3 - P3) [CAN START AFTER US1 CORE, DEPENDS ON: T034-T035]
+  ↓
+  Phase 6 (US4 - P1) [PARALLEL WITH US1, ADDS MONITORING]
+} → Phase 7 (Deployment) → Phase 8 (Polish)
+```
+
+**Critical Path**: T001-T021 (Setup + Foundational) → T022-T045 (US1) → T064-T069 (Deployment)
+
+**MVP Scope**: Phase 1 + Phase 2 + Phase 3 (US1) = Core chatbot with streaming and citations
+
+---
+
+## Parallel Execution Examples
+
+### Phase 1 (Setup) - 6 tasks in parallel
+```bash
+# Terminal 1: Backend environment
+T008: Create venv, install dependencies
+
+# Terminal 2: External services
+T001: Create Qdrant cluster
+T002: Create Neon project
+T003: Get Groq API key
+T004: Get Cohere API key
+
+# Terminal 3: Frontend setup
+T009: Create Docusaurus plugin structure
+T010: Install npm dependencies
+```
+
+### Phase 2 (Foundational) - 3 tasks in parallel
+```bash
+# Terminal 1: Database models
+T012-T015: Config, database, models, setup script
+
+# Terminal 2: Qdrant client
+T016-T017: Qdrant wrapper, create collection
+
+# Terminal 3: Utilities
+T018: Rate limiter
+T019: Sanitizer
+T020: Logger
+```
+
+### Phase 3 (US1) - 8 tasks in parallel
+```bash
+# Terminal 1: Backend ingestion
+T022-T025: Ingestion pipeline (can run independently)
+
+# Terminal 2: Backend retrieval
+T026-T028: Retrieval implementation
+
+# Terminal 3: Backend LLM
+T029-T031: LLM client + retry logic
+
+# Terminal 4: Frontend components
+T040: ChatbotWidget UI
+T041: useChat hook
+T042: CitationLink component
+T043: CSS styling
+
+# After all complete: Sequential integration
+T032-T039: Agents SDK + API routes (depend on above)
+T044-T045: Plugin integration + E2E test (depend on API routes)
+```
+
+---
+
+## Implementation Strategy
+
+### MVP-First Approach
+
+**Week 1** (MVP): Phase 1-3
+- Setup + Foundational + US1 (Query Textbook Content)
+- **Deliverable**: Working chatbot with streaming and citations
+- **Demo**: "What is Physical AI?" → Streamed response with Chapter 1 citation
+
+**Week 2** (Enhancements): Phase 4-5
+- US2 (Context-Aware Query) + US3 (Conversation History)
+- **Deliverable**: Highlight-to-ask + persistent conversations
+- **Demo**: Highlight paragraph → Ask "Explain this" → Contextual answer
+
+**Week 2** (Polish): Phase 6-8
+- Performance monitoring + Deployment + Testing
+- **Deliverable**: Production-ready on Railway + GitHub Pages
+- **Demo**: Full feature set with <200ms latency and >90 Lighthouse score
+
+### Incremental Delivery
+
+Each phase produces a working increment:
+- **After Phase 3**: MVP chatbot (can ship to users for feedback)
+- **After Phase 4**: Context-aware queries (enhanced UX)
+- **After Phase 5**: Conversation history (complete feature)
+- **After Phase 6**: Performance validated (<200ms latency)
+- **After Phase 7**: Deployed to production
+- **After Phase 8**: Polished and documented
+
+---
+
+## Task Validation
+
+**Format Check**: ✅ All 82 tasks follow checklist format:
+- ✅ All start with `- [ ]`
+- ✅ All have sequential Task IDs (T001-T082)
+- ✅ All user story tasks have [US1], [US2], or [US3] labels
+- ✅ 34 parallelizable tasks marked with [P]
+- ✅ All have clear descriptions with file paths
+
+**Completeness Check**: ✅
+- ✅ All 4 user stories covered (US1-US4)
+- ✅ All components from plan.md included
+- ✅ All entities from data-model.md mapped to tasks
+- ✅ All API endpoints from contracts/ included
+- ✅ Setup, foundational, and polish phases complete
+
+**Independence Check**: ✅
+- ✅ US1 testable independently (T045)
+- ✅ US2 testable independently (T051)
+- ✅ US3 testable independently (T058)
+- ✅ US4 testable independently (T063)
+
+---
+
+**Tasks Status**: ✅ COMPLETE - Ready for implementation
+**Total Tasks**: 82 (11 setup + 10 foundational + 24 US1 + 6 US2 + 7 US3 + 5 US4 + 7 deployment + 12 polish)
+**Parallel Opportunities**: 34 tasks (41%)
+**Estimated Duration**: 9 days
+**MVP Scope**: T001-T045 (45 tasks, ~5 days)

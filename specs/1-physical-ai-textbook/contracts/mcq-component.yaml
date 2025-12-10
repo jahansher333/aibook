@@ -1,0 +1,181 @@
+component: MCQ
+path: src/components/MCQ/index.tsx
+description: Interactive multiple-choice question component with instant feedback and explanations
+
+props:
+  id:
+    type: string
+    required: true
+    pattern: ^ch\d{2}-mcq-\d{2}$
+    description: Unique identifier for this MCQ (chapter prefix + sequence number)
+    example: "ch02-mcq-01"
+
+  question:
+    type: string
+    required: true
+    description: The question text displayed to the user
+    example: "What is the default middleware in ROS 2 Humble?"
+    validation:
+      - Must end with question mark
+      - Must be 10-200 characters
+      - Should be clear and unambiguous
+
+  options:
+    type: array<string>
+    required: true
+    description: Four answer options (A, B, C, D)
+    example: ["DDS-RTPS", "ZeroMQ", "TCP/IP", "USB"]
+    validation:
+      - Must have exactly 4 items
+      - Each option must be 5-100 characters
+      - Options must be distinct (no duplicates)
+
+  correctIndex:
+    type: number
+    required: true
+    description: Index of correct option (0-3, where 0=A, 1=B, 2=C, 3=D)
+    example: 0
+    validation:
+      - Must be integer 0-3
+      - Must match valid option index
+
+  explanation:
+    type: string
+    required: true
+    description: Explanation shown after submission, with citation to Theory section or external docs
+    example: "Correct! ROS 2 Humble uses DDS-RTPS as default middleware. See [ROS 2 DDS Docs](https://docs.ros.org/...)."
+    validation:
+      - Must be 20-500 characters
+      - Should include citation (Markdown link or Theory section reference)
+      - Should explain why correct answer is right (not just repeat question)
+
+  difficulty:
+    type: string
+    required: false
+    enum: [easy, medium, hard]
+    default: medium
+    description: Optional difficulty level for future filtering or adaptive learning
+
+returns:
+  type: JSX.Element
+  description: Rendered MCQ with radio buttons, submit button, and feedback div
+
+state:
+  selected:
+    type: number | null
+    default: null
+    description: Index of user-selected option (null if no selection)
+
+  showFeedback:
+    type: boolean
+    default: false
+    description: Whether to show feedback after submission
+
+behavior:
+  - User clicks radio button → selected state updates
+  - User clicks Submit button (only enabled if selected !== null) → showFeedback set to true
+  - If selected === correctIndex → Highlight correct option green, show ✅
+  - If selected !== correctIndex → Highlight correct option green, selected option red, show ❌
+  - Explanation always shown after submission (regardless of correct/incorrect)
+
+accessibility:
+  - Radio inputs use semantic HTML (<input type="radio">)
+  - ARIA labels: role="radiogroup", aria-labelledby for question
+  - Keyboard navigation: Arrow keys to select options, Enter to submit
+  - Screen reader compatible: Announces question, options, feedback
+
+styling:
+  - CSS Modules (MCQ.module.css) for scoped styles
+  - Docusaurus CSS variables for dark mode support (--ifm-*)
+  - Correct option: background-color: var(--ifm-color-success-lightest), border: 2px solid var(--ifm-color-success)
+  - Incorrect option: background-color: var(--ifm-color-danger-lightest), border: 2px solid var(--ifm-color-danger)
+
+example_usage: |
+  ```mdx
+  ---
+  id: ch02
+  title: "ROS 2 Fundamentals"
+  ---
+
+  # ROS 2 Fundamentals
+
+  ## Assessment
+
+  import MCQ from '@site/src/components/MCQ';
+
+  <MCQ
+    id="ch02-mcq-01"
+    question="What is the default middleware in ROS 2 Humble?"
+    options={["DDS-RTPS", "ZeroMQ", "TCP/IP", "USB"]}
+    correctIndex={0}
+    explanation="Correct! ROS 2 Humble uses DDS-RTPS (Data Distribution Service - Real-Time Publish-Subscribe) as the default middleware for inter-node communication. See [ROS 2 DDS Docs](https://docs.ros.org/en/humble/Concepts/Intermediate/About-Different-Middleware-Vendors.html)."
+    difficulty="medium"
+  />
+
+  <MCQ
+    id="ch02-mcq-02"
+    question="Which command lists all active ROS 2 topics?"
+    options={["ros2 topic list", "ros2 node list", "rostopic list", "rosnode list"]}
+    correctIndex={0}
+    explanation="Correct! 'ros2 topic list' displays all active topics. Note: 'rostopic list' is ROS 1 syntax."
+    difficulty="easy"
+  />
+  ```
+
+testing:
+  unit_tests:
+    file: src/components/MCQ/MCQ.test.tsx
+    framework: Jest + React Testing Library
+    test_cases:
+      - Renders question and 4 options
+      - Submit button disabled when no option selected
+      - Submit button enabled when option selected
+      - Shows feedback after submission
+      - Highlights correct option green
+      - Highlights incorrect option red (if user selects wrong)
+      - Displays explanation after submission
+      - Handles keyboard navigation (Arrow keys, Enter)
+
+  example_test: |
+    ```typescript
+    import { render, screen, fireEvent } from '@testing-library/react';
+    import MCQ from './index';
+
+    test('renders MCQ with question and options', () => {
+      render(
+        <MCQ
+          id="test-mcq-01"
+          question="Test question?"
+          options={["A", "B", "C", "D"]}
+          correctIndex={1}
+          explanation="Explanation text."
+        />
+      );
+      expect(screen.getByText('Test question?')).toBeInTheDocument();
+      expect(screen.getByLabelText('A')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled();
+    });
+
+    test('shows feedback after submission', () => {
+      render(<MCQ {...props} />);
+      fireEvent.click(screen.getByLabelText('B')); // Select correct answer
+      fireEvent.click(screen.getByRole('button', { name: /submit/i }));
+      expect(screen.getByText(/correct/i)).toBeInTheDocument();
+      expect(screen.getByText('Explanation text.')).toBeInTheDocument();
+    });
+    ```
+
+performance:
+  bundle_size: <10KB (minified + gzipped)
+  render_time: <50ms (React Profiler)
+
+best_practices:
+  - Keep questions concise (<200 chars)
+  - Use distractors (plausible wrong answers) for options
+  - Provide explanations that teach, not just confirm correctness
+  - Cite sources in explanations (APA format with inline links)
+  - Test MCQs on mobile (touch targets >44px)
+  - Ensure color contrast for accessibility (WCAG AA: 4.5:1)
+
+version: 1.0.0
+last_updated: 2025-12-09

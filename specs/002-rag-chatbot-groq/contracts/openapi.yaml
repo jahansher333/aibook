@@ -1,0 +1,223 @@
+openapi: 3.1.0
+info:
+  title: RAG Chatbot API
+  version: 1.0.0
+  description: FastAPI backend for Physical AI textbook chatbot with streaming responses
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://rag-chatbot.railway.app
+    description: Production (Railway)
+
+paths:
+  /api/chat:
+    post:
+      summary: Stream chat completion with RAG retrieval
+      description: |
+        Accepts a user query, retrieves relevant textbook chunks, and streams an LLM response
+        via Server-Sent Events (SSE). Supports context-aware queries via selected_text parameter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id, query]
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                  description: Session ID for conversation tracking
+                query:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+                  description: User's question
+                selected_text:
+                  type: string
+                  maxLength: 2000
+                  description: Optional highlighted text for context-aware query
+            example:
+              session_id: "123e4567-e89b-12d3-a456-426614174000"
+              query: "What is Physical AI?"
+              selected_text: null
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  SSE events with the following types:
+                  - chunk: {data: "token"}
+                  - citation: {data: {chapter_id: "ch01", similarity: 0.85}}
+                  - done: {}
+                  - error: {data: "error message"}
+        '400':
+          description: Invalid request (malformed input, rate limit exceeded)
+        '500':
+          description: Server error (LLM failure, DB error)
+
+  /api/search:
+    post:
+      summary: Semantic search in textbook chunks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                top_k:
+                  type: integer
+                  default: 5
+                  minimum: 1
+                  maximum: 20
+                min_similarity:
+                  type: number
+                  format: float
+                  default: 0.6
+                  minimum: 0.0
+                  maximum: 1.0
+            example:
+              query: "ROS 2 setup steps"
+              top_k: 5
+              min_similarity: 0.6
+      responses:
+        '200':
+          description: Matching chunks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chunks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        chapter_id:
+                          type: string
+                        chapter_title:
+                          type: string
+                        content:
+                          type: string
+                        similarity:
+                          type: number
+                          format: float
+              example:
+                chunks:
+                  - id: "ch02-section1-chunk0"
+                    chapter_id: "ch02"
+                    chapter_title: "ROS 2 Fundamentals"
+                    content: "To install ROS 2 Humble on Ubuntu 22.04..."
+                    similarity: 0.87
+
+  /api/session:
+    post:
+      summary: Create new session
+      responses:
+        '200':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                    format: uuid
+              example:
+                session_id: "123e4567-e89b-12d3-a456-426614174000"
+
+  /api/session/{session_id}:
+    get:
+      summary: Retrieve conversation history
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session with messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      created_at:
+                        type: string
+                        format: date-time
+                      total_messages:
+                        type: integer
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum: [user, assistant, system]
+                        content:
+                          type: string
+                        citations:
+                          type: array
+                          items:
+                            type: object
+                        timestamp:
+                          type: string
+                          format: date-time
+        '404':
+          description: Session not found
+
+  /api/feedback:
+    post:
+      summary: Log user feedback on message quality
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message_id, feedback]
+              properties:
+                message_id:
+                  type: string
+                  format: uuid
+                feedback:
+                  type: string
+                  enum: [helpful, unhelpful]
+            example:
+              message_id: "abc123..."
+              feedback: "helpful"
+      responses:
+        '200':
+          description: Feedback recorded
+        '400':
+          description: Invalid message_id or feedback value
+
+components:
+  securitySchemes:
+    SessionId:
+      type: apiKey
+      in: header
+      name: X-Session-Id
+      description: Optional session tracking (for rate limiting)

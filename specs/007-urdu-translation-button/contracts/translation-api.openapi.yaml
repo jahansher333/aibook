@@ -1,0 +1,177 @@
+openapi: 3.0.0
+info:
+  title: Urdu Translation API
+  version: 1.0.0
+  description: FastAPI endpoint for translating textbook chapters to Urdu using Groq LLM
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://api.physicalai.edu
+    description: Production
+
+paths:
+  /api/v1/translate:
+    post:
+      summary: Translate chapter content to Urdu
+      operationId: translateChapter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TranslationRequest'
+      responses:
+        '200':
+          description: Translation successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranslationResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/translate/{chapterId}/status:
+    get:
+      summary: Check if chapter has cached translation
+      operationId: checkCacheStatus
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^ch\d{2}$'
+      responses:
+        '200':
+          description: Cache status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheStatusResponse'
+        '404':
+          description: Chapter not found
+
+  /api/v1/translate/{chapterId}:
+    delete:
+      summary: Clear cached translation
+      operationId: clearCache
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^ch\d{2}$'
+      responses:
+        '204':
+          description: Cache cleared successfully
+        '404':
+          description: Chapter not found
+
+components:
+  schemas:
+    TranslationRequest:
+      type: object
+      required:
+        - chapterId
+        - content
+      properties:
+        chapterId:
+          type: string
+          pattern: '^ch\d{2}$'
+          description: Chapter identifier ch01-ch13
+        content:
+          type: string
+          minLength: 100
+          maxLength: 50000
+          description: Chapter HTML/Markdown content
+        skipCache:
+          type: boolean
+          default: false
+          description: Bypass cache and fetch fresh translation
+
+    TranslationResponse:
+      type: object
+      required:
+        - chapterId
+        - urduContent
+        - duration
+        - cached
+      properties:
+        chapterId:
+          type: string
+          pattern: '^ch\d{2}$'
+        urduContent:
+          type: string
+          description: Translated content in Urdu
+        duration:
+          type: integer
+          minimum: 0
+          description: Time in milliseconds
+        cached:
+          type: boolean
+          description: Whether from cache
+        cacheExpiryTime:
+          type: string
+          format: date-time
+          description: Cache expiry timestamp
+        contentHash:
+          type: string
+          description: SHA-256 hash for validation
+
+    CacheStatusResponse:
+      type: object
+      properties:
+        chapterId:
+          type: string
+          pattern: '^ch\d{2}$'
+        isCached:
+          type: boolean
+        cacheExpiry:
+          type: string
+          format: date-time
+        age:
+          type: string
+          description: Human-readable age
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          enum:
+            - BAD_REQUEST
+            - NOT_FOUND
+            - RATE_LIMITED
+            - INVALID_CHAPTER_ID
+            - CONTENT_TOO_LONG
+            - INTERNAL_ERROR
+            - SERVICE_UNAVAILABLE
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        retryAfter:
+          type: integer
+          description: Seconds to wait (for rate limits)

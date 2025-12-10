@@ -1,0 +1,196 @@
+schema: Chapter Frontmatter
+path: docs/ch*-*/index.md
+description: YAML metadata at the top of each chapter MDX file (between --- delimiters)
+
+fields:
+  id:
+    type: string
+    required: true
+    pattern: ^ch\d{2}$
+    description: Chapter identifier (ch01 to ch13)
+    example: "ch02"
+    validation:
+      - Must be unique across all chapters
+      - Must match folder name (docs/ch02-*/index.md → id: ch02)
+
+  title:
+    type: string
+    required: true
+    description: Chapter title displayed in sidebar, page header, and browser tab
+    example: "ROS 2 Fundamentals"
+    validation:
+      - Must be 10-100 characters
+      - Use title case (capitalize major words)
+      - Must be unique across all chapters
+
+  sidebar_label:
+    type: string
+    required: false
+    description: Optional shorter label for sidebar (defaults to title if not specified)
+    example: "ROS 2 Basics"
+    validation:
+      - Must be 5-50 characters
+      - Use if title is too long for sidebar (>30 chars)
+
+  sidebar_position:
+    type: number
+    required: true
+    description: Order in sidebar (1-13 for chapters, 14 for Hardware Requirements page)
+    example: 2
+    validation:
+      - Must be integer 1-14
+      - Must be unique across all docs (no two pages with same position)
+      - Should match chapter number (ch02 → sidebar_position: 2)
+
+  week:
+    type: number
+    required: true
+    description: Course week number (1-13, corresponds to semester schedule)
+    example: 2
+    validation:
+      - Must be integer 1-13
+      - Should match chapter number (ch02 → week: 2)
+
+  objectives:
+    type: array<string>
+    required: true
+    description: 3-5 measurable learning outcomes using Bloom's taxonomy verbs
+    example:
+      - "Understand ROS 2 node architecture and communication patterns"
+      - "Implement publisher-subscriber pattern with Python rclpy library"
+      - "Debug ROS 2 topics using CLI tools (ros2 topic echo, ros2 node info)"
+    validation:
+      - Must have 3-5 items
+      - Each objective must start with Bloom's verb (understand, implement, analyze, design, evaluate)
+      - Each objective should be measurable (testable via MCQ or lab)
+      - Each objective must be 20-200 characters
+
+  tags:
+    type: array<string>
+    required: false
+    description: Optional tags for search/filtering (keywords, topics, technologies)
+    example: ["ros2", "fundamentals", "nodes", "topics", "services"]
+    validation:
+      - If provided, must have 1-10 items
+      - Each tag must be lowercase, alphanumeric + hyphens (no spaces)
+      - Tags should match common search terms students would use
+
+  description:
+    type: string
+    required: false
+    description: Optional meta description for SEO (shown in search engine results)
+    example: "Master ROS 2 core concepts: nodes, topics, services, and actions for robot control."
+    validation:
+      - If provided, must be 50-160 characters (optimal for Google snippets)
+      - Should include primary keywords (e.g., "ROS 2", "robot control")
+      - Should be compelling (entice clicks from search results)
+
+blooms_taxonomy_verbs:
+  remember:
+    - list
+    - recall
+    - define
+    - identify
+    - describe
+    - explain
+  understand:
+    - understand
+    - interpret
+    - summarize
+    - classify
+    - compare
+    - explain
+  apply:
+    - implement
+    - execute
+    - use
+    - demonstrate
+    - solve
+    - operate
+  analyze:
+    - analyze
+    - differentiate
+    - organize
+    - debug
+    - diagram
+    - attribute
+  evaluate:
+    - evaluate
+    - critique
+    - justify
+    - assess
+    - argue
+    - defend
+  create:
+    - design
+    - construct
+    - create
+    - develop
+    - formulate
+    - plan
+
+example: |
+  ---
+  id: ch02
+  title: "ROS 2 Fundamentals"
+  sidebar_label: "ROS 2 Basics"
+  sidebar_position: 2
+  week: 2
+  objectives:
+    - "Understand ROS 2 node architecture and communication patterns"
+    - "Implement publisher-subscriber pattern with Python rclpy library"
+    - "Debug ROS 2 topics using CLI tools (ros2 topic echo, ros2 node info)"
+    - "Create launch files for multi-node systems with ros2 launch"
+  tags: [ros2, fundamentals, nodes, topics, services, launch]
+  description: "Master ROS 2 core concepts: nodes, topics, services, and actions for robot control."
+  ---
+
+  # ROS 2 Fundamentals
+
+  [Chapter content here...]
+
+docusaurus_behavior:
+  - Frontmatter parsed by Docusaurus at build time
+  - `id` used for internal routing (e.g., /docs/ch02)
+  - `title` shown in browser tab, page header, sidebar (if sidebar_label not set)
+  - `sidebar_position` determines order in auto-generated sidebar
+  - `objectives`, `tags`, `description` are custom fields (accessible in React components via useDocById hook)
+
+accessing_frontmatter_in_react: |
+  ```jsx
+  // src/components/ChapterHeader.tsx
+  import { useDoc } from '@docusaurus/theme-common/internal';
+
+  export default function ChapterHeader() {
+    const { frontMatter } = useDoc();
+    return (
+      <div>
+        <h1>{frontMatter.title}</h1>
+        <p>Week {frontMatter.week}</p>
+        <ul>
+          {frontMatter.objectives.map((obj, idx) => (
+            <li key={idx}>{obj}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+  ```
+
+best_practices:
+  - Use consistent patterns across all chapters (e.g., all titles in "Topic Name" format)
+  - Objectives should align with MCQ questions (test what you teach)
+  - Tags should be lowercase, hyphenated (e.g., "ros2", "vla-models", not "ROS2" or "VLA Models")
+  - Description should be unique per chapter (avoid generic descriptions)
+  - sidebar_position should not skip numbers (1, 2, 3... not 1, 3, 5)
+
+validation_script: |
+  # Run this to validate all chapter frontmatter
+  # Checks: unique IDs, sequential sidebar_position, 3-5 objectives per chapter
+
+  ```bash
+  node .specify/scripts/validate-frontmatter.js
+  ```
+
+version: 1.0.0
+last_updated: 2025-12-09

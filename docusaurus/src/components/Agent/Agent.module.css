@@ -1,0 +1,230 @@
+.agentContainer {
+  margin: 1rem 0;
+}
+
+.agentButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.agentButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.agentButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.agentButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.inlineResponse {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.responseContent {
+  line-height: 1.6;
+  color: var(--ifm-font-color-base);
+}
+
+.responseContent h1,
+.responseContent h2,
+.responseContent h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.responseContent pre {
+  background: var(--ifm-code-background);
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.responseContent ul,
+.responseContent ol {
+  margin-left: 1.5rem;
+}
+
+.errorMessage {
+  padding: 1rem;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c33;
+  margin-top: 1rem;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-in;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background: var(--ifm-background-color);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--ifm-font-color-base);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--ifm-color-emphasis-600);
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: var(--ifm-color-emphasis-200);
+  color: var(--ifm-font-color-base);
+}
+
+.modalBody {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modalFooter {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--ifm-color-emphasis-300);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.closeButtonBottom {
+  background: var(--ifm-color-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.closeButtonBottom:hover {
+  background: var(--ifm-color-primary-dark);
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .modalOverlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+[data-theme='dark'] .errorMessage {
+  background: #4a1414;
+  border-color: #7a2424;
+  color: #faa;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .modalContent {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .modalHeader h3 {
+    font-size: 1.25rem;
+  }
+
+  .agentButton {
+    width: 100%;
+    justify-content: center;
+  }
+}

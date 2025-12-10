@@ -1,0 +1,190 @@
+tiers:
+  - id: economy
+    name: Economy
+    description: Perfect for solo learners and students
+    totalCost: 700
+    currency: USD
+    costType: one-time
+    icon: laptop
+    components:
+      - name: Jetson Orin Nano Developer Kit
+        price: 249
+        vendor: NVIDIA
+        link: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+        specs:
+          - "8-core ARM CPU"
+          - "1024 CUDA cores"
+          - "8 GB LPDDR5 memory"
+          - "100 TOPS AI performance"
+        category: Edge AI Compute
+      - name: Intel RealSense D435i RGB-D Camera
+        price: 349
+        vendor: Intel
+        link: https://www.intelrealsense.com/depth-camera-d435i/
+        specs:
+          - "1280x720 RGB camera"
+          - "Stereo depth sensor"
+          - "Built-in IMU (accel + gyro)"
+          - "Up to 1280x720 @ 90fps"
+        category: Vision Sensor
+      - name: Accessories & Cables
+        price: 102
+        vendor: Various
+        link: "#"
+        specs:
+          - "USB 3.1 cables"
+          - "Mounting brackets"
+          - "Heatsinks and cooling fans"
+          - "Micro SD card (128GB)"
+          - "Power supply (65W)"
+        category: Peripherals
+    useCases:
+      - "Computer vision learning"
+      - "ROS 2 fundamentals on real hardware"
+      - "Educational robotics projects"
+      - "Sim-to-real transfer exercises"
+    pros:
+      - "Most affordable entry point"
+      - "NVIDIA CUDA ecosystem support"
+      - "Compact form factor"
+      - "Excellent community support"
+      - "Low power consumption (~15W)"
+    cons:
+      - "Limited compute for large VLA models"
+      - "No built-in locomotion"
+      - "Single camera vision only"
+      - "Requires external power management"
+    recommendation: "Best for learning ROS 2, computer vision, and AI fundamentals on embedded systems."
+
+  - id: proxy
+    name: Proxy (Embodied)
+    description: For research labs and institutions
+    totalCost: 3850
+    currency: USD
+    costType: one-time
+    icon: robot
+    components:
+      - name: Unitree Go2 Quadruped Robot
+        price: 3000
+        vendor: Unitree
+        link: https://www.unitreerobotics.com/products/go2
+        specs:
+          - "On-board Jetson Xavier NX compute"
+          - "12 DOF (3 per leg)"
+          - "25 kg payload capacity"
+          - "45-minute battery life"
+          - "Max speed: 1.5 m/s"
+          - "Inbuilt LiDAR and cameras"
+        category: Legged Robot Platform
+      - name: Jetson Xavier NX Expansion
+        price: 500
+        vendor: NVIDIA
+        link: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-xavier-nx/
+        specs:
+          - "8-core ARM CPU"
+          - "384 CUDA cores"
+          - "8 GB LPDDR4x memory"
+          - "21 TOPS AI performance"
+        category: Extended Compute Module
+      - name: Additional Sensors & Accessories
+        price: 350
+        vendor: Various
+        link: "#"
+        specs:
+          - "RGB-D camera upgrades"
+          - "IMU calibration kit"
+          - "Battery management system"
+          - "Carrying case and protective gear"
+          - "Spare motors and joint parts"
+        category: Peripherals & Spares
+    useCases:
+      - "Quadruped locomotion research"
+      - "Multi-modal AI (vision + proprioception)"
+      - "Whole-body control experiments"
+      - "Real-world outdoor deployment"
+      - "Imitation learning from demonstrations"
+    pros:
+      - "Complete embodied AI platform"
+      - "Inherent proprioceptive feedback"
+      - "Field-deployable for outdoor tasks"
+      - "Active research community"
+      - "Supports complex policies"
+    cons:
+      - "Significant upfront cost"
+      - "Requires maintenance expertise"
+      - "Slower compute than cloud alternatives"
+      - "Battery management complexity"
+      - "Learning curve for robot operation"
+    recommendation: "Ideal for research labs studying embodied intelligence, locomotion control, and real-world AI deployment."
+
+  - id: cloud
+    name: Cloud OpEx
+    description: For remote learners and cloud-first development
+    totalCost: 205
+    currency: USD
+    costType: per-quarter
+    costPerMonth: 68.33
+    icon: cloud
+    components:
+      - name: AWS EC2 g4dn.xlarge Instance
+        price: 192
+        vendor: AWS
+        link: https://aws.amazon.com/ec2/instance-types/g4/
+        specs:
+          - "1x NVIDIA T4 GPU (16 GB VRAM)"
+          - "4 vCPU (Intel Cascade Lake)"
+          - "16 GB host memory"
+          - "~$0.526/hour on-demand"
+        category: GPU Compute
+      - name: Elastic Block Storage (EBS)
+        price: 10
+        vendor: AWS
+        link: https://aws.amazon.com/ebs/
+        specs:
+          - "200 GB gp3 volume"
+          - "$0.09/GB-month for storage"
+          - "1000 IOPS included"
+        category: Storage
+      - name: Data Transfer & Networking
+        price: 3
+        vendor: AWS
+        link: https://aws.amazon.com/ec2/pricing/on-demand/"
+        specs:
+          - "Inter-region data transfer"
+          - "Outbound internet traffic"
+          - "CloudWatch monitoring"
+        category: Networking
+    useCases:
+      - "Large-scale VLA model training"
+      - "Batch simulation and evaluation"
+      - "Collaborative research in cloud"
+      - "Prototyping before hardware deployment"
+      - "GPU-accelerated trajectory optimization"
+    pros:
+      - "No hardware purchase required"
+      - "Infinite scalability on-demand"
+      - "Pay-as-you-go cost model"
+      - "Access to latest GPUs (T4, A100)"
+      - "Professional monitoring and support"
+    cons:
+      - "Recurring monthly costs"
+      - "Latency for real-time control"
+      - "Data egress charges can accumulate"
+      - "Less ideal for hands-on robotics learning"
+      - "Requires cloud account and management expertise"
+    recommendation: "Perfect for AI training, simulation at scale, and remote collaboration without hardware investment."
+
+metadata:
+  lastUpdated: "2025-12-09"
+  currency: "USD"
+  pricesAccurateAsOf: "2025-12"
+  disclaimer: "Prices are approximate and subject to change. Please verify with vendors before purchase. Hardware specifications may vary by region. Cloud pricing is based on US regions and may differ in other areas."
+  sources:
+    - name: NVIDIA Official Store
+      url: https://www.nvidia.com/
+    - name: Intel RealSense
+      url: https://www.intelrealsense.com/
+    - name: Unitree Robotics
+      url: https://www.unitreerobotics.com/
+    - name: AWS Pricing
+      url: https://aws.amazon.com/ec2/pricing/

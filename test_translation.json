@@ -1,0 +1,5 @@
+{
+  "chapterId": "ch01",
+  "content": "This is a test of robotics. ROS 2 is a middleware for robotics. It provides tools and libraries to build robot applications. Gazebo is a simulator. Python is a programming language.",
+  "skipCache": false
+}

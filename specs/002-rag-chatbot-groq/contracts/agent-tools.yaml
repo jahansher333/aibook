@@ -1,0 +1,119 @@
+# OpenAI Agents SDK Tool Schema
+# For retrieval tool definition used by RAG agent
+
+tools:
+  - name: retrieve_textbook_chunks
+    description: |
+      Searches the Physical AI & Humanoid Robotics textbook for relevant content based on the user's query.
+      Returns the top 5 most semantically similar chunks from the 13 chapters.
+      Use this tool to ground your responses in accurate textbook content and provide citations.
+
+    parameters:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          description: The search query (user's question rephrased for semantic search)
+
+        context_chapter:
+          type: string
+          description: Optional chapter ID to prioritize (e.g., "ch02" if user selected text from Chapter 2)
+          enum: [ch01, ch02, ch03, ch04, ch05, ch06, ch07, ch08, ch09, ch10, ch11, ch12, ch13]
+
+        top_k:
+          type: integer
+          description: Number of chunks to retrieve (default: 5, max: 10)
+          default: 5
+          minimum: 1
+          maximum: 10
+
+    returns:
+      type: object
+      properties:
+        chunks:
+          type: array
+          description: Retrieved textbook chunks sorted by relevance
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Unique chunk identifier (e.g., "ch02-section3-chunk1")
+              chapter_id:
+                type: string
+                description: Chapter identifier (e.g., "ch02")
+              chapter_title:
+                type: string
+                description: Full chapter title
+              section_title:
+                type: string
+                description: Section heading within chapter
+              content:
+                type: string
+                description: The actual textbook content (512 tokens max)
+              similarity:
+                type: number
+                format: float
+                description: Cosine similarity score (0.0-1.0, higher is better)
+
+        query_embedding_time_ms:
+          type: integer
+          description: Time taken to generate query embedding
+
+        search_time_ms:
+          type: integer
+          description: Time taken to search Qdrant vector database
+
+# Agent System Prompt Template
+system_prompt: |
+  You are a helpful AI assistant specialized in the Physical AI & Humanoid Robotics textbook.
+
+  Context: The user is reading a textbook covering ROS 2, Gazebo, Unity, NVIDIA Isaac Sim,
+  Vision-Language-Action models, and humanoid robotics over 13 chapters.
+
+  Your role:
+  - Answer questions accurately using ONLY information from the retrieved textbook chunks
+  - Always cite your sources using [Chapter N: Title] format
+  - If information isn't in the retrieved chunks, say "I don't have information about this in the textbook"
+  - Keep answers concise (2-4 sentences) unless the user asks for more detail
+  - Use technical terms from the textbook but explain jargon when first introduced
+
+  Tool usage:
+  - ALWAYS call retrieve_textbook_chunks first before answering
+  - Include the user's question verbatim in the query parameter
+  - If user selected text, pass the chapter_id in context_chapter parameter
+
+  Citation format:
+  - For each fact, cite as: "ROS 2 uses a DDS middleware layer [Chapter 2: ROS 2 Fundamentals]"
+  - Multiple sources: "Physical AI combines perception, planning, and control [Chapter 1: Physical AI Intro] with embodied intelligence [Chapter 7: VLA Models]"
+
+# Example Tool Call
+example_tool_call:
+  user_query: "How do I set up ROS 2 on Ubuntu?"
+  tool_call:
+    name: retrieve_textbook_chunks
+    arguments:
+      query: "ROS 2 installation setup Ubuntu steps"
+      context_chapter: null
+      top_k: 5
+  tool_response:
+    chunks:
+      - id: "ch02-section1-chunk0"
+        chapter_id: "ch02"
+        chapter_title: "ROS 2 Fundamentals"
+        section_title: "Installing ROS 2 Humble"
+        content: "To install ROS 2 Humble on Ubuntu 22.04, first add the ROS 2 apt repository..."
+        similarity: 0.89
+      - id: "ch02-section1-chunk1"
+        chapter_id: "ch02"
+        chapter_title: "ROS 2 Fundamentals"
+        section_title: "Verifying Installation"
+        content: "After installation, verify ROS 2 by running: ros2 run demo_nodes_cpp talker..."
+        similarity: 0.76
+    query_embedding_time_ms: 45
+    search_time_ms: 23
+  agent_response: |
+    To set up ROS 2 on Ubuntu 22.04, you need to add the ROS 2 apt repository and install the ros-humble-desktop package [Chapter 2: ROS 2 Fundamentals].
+    After installation, verify it works by running `ros2 run demo_nodes_cpp talker` in a terminal [Chapter 2: ROS 2 Fundamentals].
+    The full setup process takes about 15 minutes including dependency installation.

@@ -1,0 +1,91 @@
+/**
+ * Custom CSS for Physical AI & Humanoid Robotics Textbook
+ * Optimized for dark mode, mobile responsiveness, and accessibility
+ */
+
+/* Light mode color palette */
+:root {
+  --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode color palette */
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile responsiveness */
+@media screen and (max-width: 768px) {
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  table {
+    font-size: 0.85rem;
+  }
+}
+
+/* Code block enhancements */
+pre {
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] pre {
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.05);
+}
+
+/* Table responsiveness */
+table {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* Mermaid diagram styling */
+.mermaid {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+/* MCQ container spacing */
+.mcq-container {
+  margin: 2rem 0;
+}
+
+/* Smooth animations */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Button enhancements */
+.button {
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme='dark'] .button:hover {
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}

@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+litellm
+openai
+qdrant-client
+psycopg[binary]
+sqlalchemy
+pydantic
+pydantic-settings
+python-dotenv
+cohere
+tiktoken
+python-multipart
+anthropic
+pyyaml

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import './UrduTranslationButton.module.css';
+import styles from './UrduTranslationButton.module.css';
 
 interface UrduTranslationButtonProps {
   chapterId: string;
@@ -35,6 +35,43 @@ const getAPIUrl = (): string => {
 
   // Production - update this with your actual backend URL
   return 'https://your-api-domain.com';
+};
+
+// Simple markdown to HTML converter for basic formatting
+const markdownToHtml = (markdown: string): string => {
+  return markdown
+    // Remove leading/trailing markdown delimiters
+    .replace(/^---\n?/, '')
+    .replace(/\n?---$/, '')
+    // Code blocks (```code```)
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
+    // Inline code (`code`)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Headers (# to h1, ## to h2, etc.)
+    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+    // Bold (**text** or __text__)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+    // Italic (*text* or _text_)
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>')
+    // Links [text](url)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    // Unordered lists (- item)
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    // Wrap list items in ul
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    // Line breaks (double newline = paragraph)
+    .replace(/\n\n/g, '</p><p>')
+    // Single newline = br
+    .replace(/\n/g, '<br/>')
+    // Wrap in paragraph if needed
+    .replace(/^(.+)$/s, '<p>$1</p>')
+    // Clean up empty paragraphs
+    .replace(/<p><\/p>/g, '')
+    .replace(/<p><br\/><\/p>/g, '');
 };
 
 export const UrduTranslationButton: React.FC<UrduTranslationButtonProps> = ({
@@ -139,39 +176,39 @@ export const UrduTranslationButton: React.FC<UrduTranslationButtonProps> = ({
       : 'اردو میں دیکھیں';
 
   return (
-    <div className="urdu_translation_container">
+    <div className={styles.urdu_translation_container}>
       <button
         onClick={handleTranslate}
         disabled={state.isLoading}
-        className={`urdu_translation_button ${state.isUrdu ? 'active' : ''} ${state.isLoading ? 'loading' : ''}`}
+        className={`${styles.urdu_translation_button} ${state.isUrdu ? styles.active : ''} ${state.isLoading ? styles.loading : ''}`}
         title={state.isUrdu ? 'Click to show English' : 'Click to view in Urdu'}
         aria-label={buttonLabel}
       >
-        {state.isLoading && <span className="spinner"></span>}
-        <span className="button_text">{buttonLabel}</span>
+        {state.isLoading && <span className={styles.spinner}></span>}
+        <span className={styles.button_text}>{buttonLabel}</span>
       </button>
 
       {state.error && (
-        <div className="error_message" role="alert">
-          <span className="error_icon">⚠️</span>
+        <div className={styles.error_message} role="alert">
+          <span className={styles.error_icon}>⚠️</span>
           <span>{state.error}</span>
           {state.error.includes('rate limit') && (
-            <span className="retry_hint"> (Retry after 60 seconds)</span>
+            <span className={styles.retry_hint}> (Retry after 60 seconds)</span>
           )}
         </div>
       )}
 
       {state.isUrdu && state.translatedContent && (
         <div
-          className="translated_content"
+          className={styles.translated_content}
           dir="rtl"
           lang="ur"
-          dangerouslySetInnerHTML={{ __html: state.translatedContent }}
+          dangerouslySetInnerHTML={{ __html: markdownToHtml(state.translatedContent) }}
         />
       )}
 
       {!state.isUrdu && children && (
-        <div className="original_content">
+        <div className={styles.original_content}>
           {children}
         </div>
       )}

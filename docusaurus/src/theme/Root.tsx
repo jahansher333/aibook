@@ -12,7 +12,7 @@ export default function Root({children}: {children: React.ReactNode}) {
     <UserProvider>
       <>
         {children}
-        <RagChatbot backendUrl="http://localhost:8000" />
+        <RagChatbot backendUrl="http://localhost:8003" />
       </>
     </UserProvider>
   );

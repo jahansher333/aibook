@@ -15,7 +15,26 @@ interface RagChatbotProps {
   backendUrl?: string;
 }
 
-export default function RagChatbot({ backendUrl = 'http://127.0.0.1:8003' }: RagChatbotProps) {
+// Get API URL - automatically detect based on environment (same pattern as UrduTranslationButton)
+const getAPIUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:8003';
+  }
+
+  const hostname = window.location.hostname;
+
+  // Development
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8003';
+  }
+
+  // Production - update this with your actual backend URL
+  return 'https://your-api-domain.com';
+};
+
+export default function RagChatbot({ backendUrl }: RagChatbotProps) {
+  // Use provided backendUrl or auto-detect
+  const apiUrl = backendUrl || getAPIUrl();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -51,7 +70,9 @@ export default function RagChatbot({ backendUrl = 'http://127.0.0.1:8003' }: Rag
     setIsStreaming(true);
 
     try {
-      const response = await fetch(`${backendUrl}/query`, {
+      console.log('[Chatbot] Sending request to:', `${apiUrl}/query`);
+
+      const response = await fetch(`${apiUrl}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -60,7 +81,9 @@ export default function RagChatbot({ backendUrl = 'http://127.0.0.1:8003' }: Rag
         })
       });
 
-      if (!response.ok) throw new Error('API request failed');
+      console.log('[Chatbot] Response status:', response.status);
+
+      if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -95,12 +118,22 @@ export default function RagChatbot({ backendUrl = 'http://127.0.0.1:8003' }: Rag
                     return updated;
                   });
                 } else if (data.type === 'done') {
-                  setIsStreaming(false);
+                  // Stream completed successfully
                 } else if (data.type === 'error') {
-                  throw new Error(data.message);
+                  console.error('[Chatbot] Server error:', data.content || data.message);
+                  assistantMessage.content = data.content || data.message || 'Server error occurred';
+                  setMessages(prev => {
+                    const updated = [...prev];
+                    updated[updated.length - 1] = { ...assistantMessage };
+                    return updated;
+                  });
                 }
-              } catch (e) {
-                console.error('Error parsing SSE:', e);
+                // Ignore tool_call type - it's just a status update
+              } catch (parseError) {
+                // Only log if it's not an empty line
+                if (line.slice(6).trim()) {
+                  console.warn('[Chatbot] Could not parse SSE line:', line);
+                }
               }
             }
           }
@@ -109,11 +142,12 @@ export default function RagChatbot({ backendUrl = 'http://127.0.0.1:8003' }: Rag
 
       setSelectedText(''); // Clear selected text after query
     } catch (error) {
-      console.error('Error:', error);
+      console.error('[Chatbot] Error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Sorry, there was an error processing your request. Please try again.'
       }]);
+    } finally {
       setIsStreaming(false);
     }
   };

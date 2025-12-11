@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { authClient } from '@site/src/lib/authAdapter';
+// import { authClient } from '@site/src/lib/authAdapter';
 import styles from './Auth.module.css';
 import GoogleOAuthButton from './GoogleOAuthButton';
 

@@ -1,6 +1,7 @@
 """
 Translation API routes
-Handles Urdu translation requests via FastAPI
+Handles Urdu translation requests via FastAPI using the UrduTranslationAgent
+(OpenAI Agents SDK + LiteLLM/Groq)
 """
 import logging
 from datetime import datetime
@@ -11,10 +12,12 @@ from .translation_models import (
     CacheStatusResponse,
     ErrorResponse,
 )
-from .translation_service import (
+# Use the new translation agent (OpenAI Agents SDK + LiteLLM)
+from .translation_agent import (
     translate_to_urdu,
     clear_cache,
     get_cache_stats,
+    get_translation_cache,
     TranslationError,
     RateLimitError,
     GroqAPIError,
@@ -67,7 +70,7 @@ async def translate_chapter(request: TranslationRequest):
                     error="INVALID_CHAPTER_ID",
                     message="Chapter ID must be in format ch01-ch13",
                     timestamp=datetime.utcnow(),
-                ).dict(),
+                ).model_dump(mode='json'),
             )
 
         chapter_num = int(request.chapterId[2:])
@@ -78,7 +81,7 @@ async def translate_chapter(request: TranslationRequest):
                     error="INVALID_CHAPTER_ID",
                     message="Chapter number must be between 01 and 13",
                     timestamp=datetime.utcnow(),
-                ).dict(),
+                ).model_dump(mode='json'),
             )
 
         # Call translation service
@@ -108,7 +111,7 @@ async def translate_chapter(request: TranslationRequest):
                 message=str(e),
                 timestamp=datetime.utcnow(),
                 retryAfter=60,
-            ).dict(),
+            ).model_dump(mode='json'),
         )
 
     except GroqAPIError as e:
@@ -120,7 +123,7 @@ async def translate_chapter(request: TranslationRequest):
                 error="SERVICE_UNAVAILABLE" if status_code == 503 else "INTERNAL_ERROR",
                 message=str(e),
                 timestamp=datetime.utcnow(),
-            ).dict(),
+            ).model_dump(mode='json'),
         )
 
     except TranslationError as e:
@@ -131,7 +134,7 @@ async def translate_chapter(request: TranslationRequest):
                 error="BAD_REQUEST",
                 message=str(e),
                 timestamp=datetime.utcnow(),
-            ).dict(),
+            ).model_dump(mode='json'),
         )
 
     except Exception as e:
@@ -142,7 +145,7 @@ async def translate_chapter(request: TranslationRequest):
                 error="INTERNAL_ERROR",
                 message="An unexpected error occurred. Please try again later.",
                 timestamp=datetime.utcnow(),
-            ).dict(),
+            ).model_dump(mode='json'),
         )
 
 
@@ -164,8 +167,8 @@ async def check_cache_status(chapter_id: str):
     - `cacheExpiry`: When cache expires (if cached)
     - `age`: Human-readable age of cache
     """
-    from .translation_service import _translation_cache
-    from datetime import timedelta
+    # Get cache from translation agent
+    _translation_cache = get_translation_cache()
 
     if chapter_id not in _translation_cache:
         raise HTTPException(
@@ -174,7 +177,7 @@ async def check_cache_status(chapter_id: str):
                 error="NOT_FOUND",
                 message=f"No cached translation for {chapter_id}",
                 timestamp=datetime.utcnow(),
-            ).dict(),
+            ).model_dump(mode='json'),
         )
 
     cache_entry = _translation_cache[chapter_id]
@@ -217,7 +220,7 @@ async def clear_translation_cache(chapter_id: str = None):
                 error="NOT_FOUND",
                 message=f"No cache found for {chapter_id}",
                 timestamp=datetime.utcnow(),
-            ).dict(),
+            ).model_dump(mode='json'),
         )
 
     return {"message": f"Cleared {cleared} cache entries"}

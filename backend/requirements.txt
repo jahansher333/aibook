@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 litellm
 openai
+openai-agents[litellm]
 qdrant-client
 psycopg[binary]
 sqlalchemy

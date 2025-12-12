@@ -9,14 +9,18 @@ from .agent_simple import get_agent
 from .agents import invoke_agent, list_available_agents, get_agent_info
 from .auth_routes import router as auth_router
 from .translation_routes import router as translation_router
+from .personalization_routes import router as personalization_router
 
-app = FastAPI(title="Physical AI RAG Chatbot with Agents SDK + Urdu Translation")
+app = FastAPI(title="Physical AI RAG Chatbot with Agents SDK + Urdu Translation + Personalization")
 
 # Include authentication routes
 app.include_router(auth_router)
 
 # Include translation routes
 app.include_router(translation_router)
+
+# Include personalization routes
+app.include_router(personalization_router)
 
 # CORS middleware - Allow all origins for development
 app.add_middleware(

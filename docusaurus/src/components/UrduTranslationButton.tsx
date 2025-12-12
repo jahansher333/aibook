@@ -20,21 +20,16 @@ interface TranslationState {
   duration: number | null;
 }
 
-// Get API URL - automatically detect based on environment
-const getAPIUrl = (): string => {
-  if (typeof window === 'undefined') {
-    return 'http://localhost:8003';
-  }
-
+// Check if running locally (backend available) or on GitHub Pages (no backend)
+const isLocalEnvironment = (): boolean => {
+  if (typeof window === 'undefined') return true;
   const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+};
 
-  // Development
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:8003';
-  }
-
-  // Production - update this with your actual backend URL
-  return 'https://your-api-domain.com';
+// Get API URL - only works locally
+const getAPIUrl = (): string => {
+  return 'http://localhost:8003';
 };
 
 // Simple markdown to HTML converter for basic formatting
@@ -174,6 +169,24 @@ export const UrduTranslationButton: React.FC<UrduTranslationButtonProps> = ({
     : state.isUrdu
       ? 'Show in English'
       : 'اردو میں دیکھیں';
+
+  // If running on GitHub Pages (not local), show info message
+  if (!isLocalEnvironment()) {
+    return (
+      <div className={styles.urdu_translation_container}>
+        <div className={styles.cloud_notice}>
+          <span className={styles.notice_icon}>🌐</span>
+          <div>
+            <strong>Urdu Translation</strong>
+            <p>This feature requires running the project locally with the backend server.</p>
+            <a href="https://github.com/jahansher333/aibook#running-locally" target="_blank" rel="noopener noreferrer">
+              Learn how to run locally
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.urdu_translation_container}>

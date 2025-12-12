@@ -7,16 +7,16 @@ interface PersonalizeButtonProps {
   chapterContent?: string;
 }
 
-// Get API URL based on environment
-const getAPIUrl = (): string => {
-  if (typeof window === 'undefined') {
-    return 'http://localhost:8003';
-  }
+// Check if running locally (backend available) or on GitHub Pages (no backend)
+const isLocalEnvironment = (): boolean => {
+  if (typeof window === 'undefined') return true;
   const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:8003';
-  }
-  return 'https://your-api-domain.com';
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+};
+
+// Get API URL - only works locally
+const getAPIUrl = (): string => {
+  return 'http://localhost:8003';
 };
 
 // Extract text content from HTML, preserving structure for markdown
@@ -184,6 +184,24 @@ const PersonalizeButton: React.FC<PersonalizeButtonProps> = ({ chapterId, chapte
       setIsProcessing(false);
     }
   };
+
+  // If running on GitHub Pages (not local), show info message
+  if (!isLocalEnvironment()) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.cloudNotice}>
+          <span className={styles.icon}>🔧</span>
+          <div>
+            <strong>AI Personalization</strong>
+            <p>This feature requires running the project locally with the backend server.</p>
+            <a href="https://github.com/jahansher333/aibook#running-locally" target="_blank" rel="noopener noreferrer">
+              Learn how to run locally
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // If user profile is not loaded yet
   if (isLoading) {

@@ -263,8 +263,63 @@
   outline: none;
 }
 
+/* Cloud notice for GitHub Pages */
+.cloud_notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  color: #3730a3;
+}
+
+.notice_icon {
+  font-size: 1.5rem;
+}
+
+.cloud_notice strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #312e81;
+}
+
+.cloud_notice p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.cloud_notice a {
+  color: #4f46e5;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.cloud_notice a:hover {
+  color: #312e81;
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
+  .cloud_notice {
+    background: linear-gradient(135deg, #312e81 0%, #3730a3 100%);
+    border-color: #4f46e5;
+    color: #c7d2fe;
+  }
+
+  .cloud_notice strong {
+    color: #e0e7ff;
+  }
+
+  .cloud_notice a {
+    color: #a5b4fc;
+  }
+
+  .cloud_notice a:hover {
+    color: #e0e7ff;
+  }
   .translated_content {
     background-color: #1f2937;
     border-left-color: #3b82f6;

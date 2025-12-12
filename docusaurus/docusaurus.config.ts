@@ -15,8 +15,8 @@ const config: Config = {
   url: 'https://jahansher333.github.io',
   baseUrl: '/aibook/',
 
-  organizationName: 'your-username',
-  projectName: 'physical-ai-textbook',
+  organizationName: 'jahansher333',
+  projectName: '/aibook/',
 
   onBrokenLinks: 'warn',
 
@@ -86,7 +86,7 @@ const config: Config = {
 
         { type: 'search', position: 'right' },
         {
-          href: 'https://github.com/your-org/physical-ai-textbook',
+          href: 'https://github.com/jahansher333/aibook/',
           label: '⭐ Star on GitHub',
           position: 'right',
         },
@@ -134,10 +134,10 @@ const config: Config = {
         {
           title: '💬 Community',
           items: [
-            { label: 'GitHub Repository', href: 'https://github.com/your-org/physical-ai-textbook' },
-            { label: 'Report Issues', href: 'https://github.com/your-org/physical-ai-textbook/issues' },
-            { label: 'Discussions', href: 'https://github.com/your-org/physical-ai-textbook/discussions' },
-            { label: 'Contributing Guide', href: 'https://github.com/your-org/physical-ai-textbook/blob/main/CONTRIBUTING.md' },
+            { label: 'GitHub Repository', href: 'https://github.com/jahansher333/aibook/' },
+            { label: 'Report Issues', href: 'https://github.com/jahansher333/aibook/issues' },
+            { label: 'Discussions', href: 'https://github.com/jahansher333/aibook/discussions' },
+            { label: 'Contributing Guide', href: 'https://github.com/jahansher333/aibook/blob/main/CONTRIBUTING.md' },
           ],
         },
       ],

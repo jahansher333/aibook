@@ -12,8 +12,8 @@ const config: Config = {
   },
 
   // GitHub Pages config
-  url: 'https://your-username.github.io',
-  baseUrl: '/',
+  url: 'https://jahansher333.github.io',
+  baseUrl: '/aibook/',
 
   organizationName: 'your-username',
   projectName: 'physical-ai-textbook',

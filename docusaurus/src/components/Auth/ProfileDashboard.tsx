@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import Link from '@docusaurus/Link';
 import styles from '../Auth/Auth.module.css';
 import { useUserContext } from '../../contexts/UserContext';
 
@@ -162,7 +163,7 @@ export default function ProfileDashboard() {
         <div className={styles.authForm}>
           <h2>Profile Access</h2>
           <p>Please sign in to view your profile.</p>
-          <a href="/login" className={styles.primaryButton}>Sign In</a>
+          <Link to="/login" className={styles.primaryButton}>Sign In</Link>
         </div>
       </div>
     );
@@ -337,7 +338,7 @@ export default function ProfileDashboard() {
               <div>
                 <p>You haven't completed your profile yet.</p>
                 <p>Complete the 7-question quiz to personalize your learning experience.</p>
-                <a href="/signup" className={styles.primaryButton}>Complete Profile</a>
+                <Link to="/signup" className={styles.primaryButton}>Complete Profile</Link>
               </div>
             )}
           </div>
@@ -345,9 +346,9 @@ export default function ProfileDashboard() {
 
         <div className={styles.formFooter}>
           <p>
-            <a href="/" className={styles.link}>
+            <Link to="/" className={styles.link}>
               ← Back to Home
-            </a>
+            </Link>
           </p>
         </div>
       </div>

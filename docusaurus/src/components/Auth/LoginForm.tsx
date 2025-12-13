@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import Link from '@docusaurus/Link';
 import styles from './Auth.module.css';
 import GoogleOAuthButton from './GoogleOAuthButton';
 
@@ -191,9 +192,9 @@ export default function LoginForm() {
         <div className={styles.formFooter}>
           <p>
             Don't have an account?{' '}
-            <a href="/signup" className={styles.link}>
+            <Link to="/signup" className={styles.link}>
               Create Account
-            </a>
+            </Link>
           </p>
         </div>
       </form>

@@ -165,11 +165,15 @@ export default function SignUpForm() {
         // Redirect to first chapter after successful signup
         window.location.href = '/docs/ch01-physical-ai-intro/ch01';
       } else {
-        setError(result.detail || 'Signup failed. Please try again.');
+        // Show detailed error message
+        const errorMsg = result.detail || result.message || JSON.stringify(result) || 'Signup failed. Please try again.';
+        console.error('Signup failed:', errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
       console.error('Signup error:', err);
-      setError('An error occurred during signup. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Network error. Please check if backend is running.';
+      setError(`Error: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

@@ -163,7 +163,7 @@ export default function SignUpForm() {
         localStorage.setItem('userProfile', JSON.stringify(userProfile));
 
         // Redirect to first chapter after successful signup
-        window.location.href = '/docs/ch01-physical-ai-intro/ch01';
+        window.location.href = '/aibook/ch01-physical-ai-intro/ch01';
       } else {
         // Show detailed error message
         const errorMsg = result.detail || result.message || JSON.stringify(result) || 'Signup failed. Please try again.';

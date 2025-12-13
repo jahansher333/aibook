@@ -120,8 +120,7 @@ export default function LoginForm() {
         }
 
         // Redirect to first chapter after successful login
-        window.location.href =
-          "/docs/ch01-physical-ai-intro/";
+        window.location.href = "/aibook/ch01-physical-ai-intro/ch01";
       } else {
         setError(result.detail || 'Login failed. Please check your credentials.');
       }

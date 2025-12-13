@@ -49,7 +49,10 @@ export default function ProfileDashboard() {
         return;
       }
 
-      const response = await fetch('http://127.0.0.1:8003/api/auth/me', {
+      const apiUrl = process.env.NODE_ENV === 'production'
+        ? 'https://jahansher-aibook.hf.space/api/auth/me'
+        : 'http://127.0.0.1:8003/api/auth/me';
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

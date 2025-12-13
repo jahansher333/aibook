@@ -110,7 +110,10 @@ export default function SignUpForm() {
 
     try {
       // Submit to our FastAPI backend directly
-      const response = await fetch('http://127.0.0.1:8003/api/auth/sign-up', {
+      const apiUrl = process.env.NODE_ENV === 'production'
+        ? 'https://jahansher-aibook.hf.space/api/auth/sign-up'
+        : 'http://127.0.0.1:8003/api/auth/sign-up';
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

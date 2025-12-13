@@ -5,7 +5,7 @@
  */
 
 const FASTAPI_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://your-production-api.com'  // Update with your production API URL
+  ? 'https://jahansher-aibook.hf.space'  // Hugging Face Space backend
   : 'http://127.0.0.1:8003';
 
 // Export helper to manually logout (clear local storage)

@@ -34,7 +34,7 @@ export default function Agent({
 
     try {
       const apiUrl = process.env.NODE_ENV === 'production'
-        ? 'https://your-vercel-backend.vercel.app/api/agent'
+        ? 'https://jahansher-aibook.hf.space/api/agent'
         : 'http://localhost:8003/api/agent';
 
       const res = await fetch(apiUrl, {

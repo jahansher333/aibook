@@ -27,9 +27,14 @@ const isLocalEnvironment = (): boolean => {
   return hostname === 'localhost' || hostname === '127.0.0.1';
 };
 
-// Get API URL - only works locally
+// Get API URL - automatically detect based on environment
 const getAPIUrl = (): string => {
-  return 'http://localhost:8003';
+  if (typeof window === 'undefined') return 'http://localhost:8003';
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8003';
+  }
+  return 'https://jahansher-aibook.hf.space';
 };
 
 // Simple markdown to HTML converter for basic formatting

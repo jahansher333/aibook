@@ -58,7 +58,10 @@ export default function LoginForm() {
 
     try {
       // Submit to our FastAPI backend directly
-      const response = await fetch('http://127.0.0.1:8003/api/auth/sign-in', {
+      const apiUrl = process.env.NODE_ENV === 'production'
+        ? 'https://jahansher-aibook.hf.space/api/auth/sign-in'
+        : 'http://127.0.0.1:8003/api/auth/sign-in';
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +84,10 @@ export default function LoginForm() {
 
         // Fetch user profile from backend after successful login
         try {
-          const profileResponse = await fetch('http://127.0.0.1:8003/api/auth/me', {
+          const profileApiUrl = process.env.NODE_ENV === 'production'
+            ? 'https://jahansher-aibook.hf.space/api/auth/me'
+            : 'http://127.0.0.1:8003/api/auth/me';
+          const profileResponse = await fetch(profileApiUrl, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${result.access_token}`,

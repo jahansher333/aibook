@@ -28,8 +28,8 @@ const getAPIUrl = (): string => {
     return 'http://localhost:8003';
   }
 
-  // Production - update this with your actual backend URL
-  return 'https://your-api-domain.com';
+  // Production - Hugging Face Space backend
+  return 'https://jahansher-aibook.hf.space';
 };
 
 export default function RagChatbot({ backendUrl }: RagChatbotProps) {

@@ -175,23 +175,7 @@ export const UrduTranslationButton: React.FC<UrduTranslationButtonProps> = ({
       ? 'Show in English'
       : 'اردو میں دیکھیں';
 
-  // If running on GitHub Pages (not local), show info message
-  if (!isLocalEnvironment()) {
-    return (
-      <div className={styles.urdu_translation_container}>
-        <div className={styles.cloud_notice}>
-          <span className={styles.notice_icon}>🌐</span>
-          <div>
-            <strong>Urdu Translation</strong>
-            <p>This feature requires running the project locally with the backend server.</p>
-            <a href="https://github.com/jahansher333/aibook#running-locally" target="_blank" rel="noopener noreferrer">
-              Learn how to run locally
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Translation now works in production via Hugging Face Space backend
 
   return (
     <div className={styles.urdu_translation_container}>

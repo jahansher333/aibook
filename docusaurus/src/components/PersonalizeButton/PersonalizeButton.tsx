@@ -190,23 +190,7 @@ const PersonalizeButton: React.FC<PersonalizeButtonProps> = ({ chapterId, chapte
     }
   };
 
-  // If running on GitHub Pages (not local), show info message
-  if (!isLocalEnvironment()) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.cloudNotice}>
-          <span className={styles.icon}>🔧</span>
-          <div>
-            <strong>AI Personalization</strong>
-            <p>This feature requires running the project locally with the backend server.</p>
-            <a href="https://github.com/jahansher333/aibook#running-locally" target="_blank" rel="noopener noreferrer">
-              Learn how to run locally
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Personalization now works in production via Hugging Face Space backend
 
   // If user profile is not loaded yet
   if (isLoading) {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { JSX, useEffect } from 'react';
 import { handleGoogleCallback } from '@site/src/lib/authAdapter';
 import Layout from '@theme/Layout';
 

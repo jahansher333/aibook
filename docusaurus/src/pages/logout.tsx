@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { JSX, useEffect, useState } from 'react';
 import Layout from '@theme/Layout';
+import Link from '@docusaurus/Link';
 import { logout } from '@site/src/lib/authAdapter';
 
 export default function LogoutPage(): JSX.Element {
@@ -60,8 +61,8 @@ export default function LogoutPage(): JSX.Element {
             )}
             {!isLoggingOut && (
               <div style={{ marginTop: '1.5rem' }}>
-                <a
-                  href="/login"
+                <Link
+                  to="/login"
                   style={{
                     display: 'inline-block',
                     padding: '0.5rem 1.5rem',
@@ -73,7 +74,7 @@ export default function LogoutPage(): JSX.Element {
                   }}
                 >
                   Sign In Again
-                </a>
+                </Link>
               </div>
             )}
           </div>

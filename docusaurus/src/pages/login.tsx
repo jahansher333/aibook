@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { JSX } from 'react';
 import LoginForm from '@site/src/components/Auth/LoginForm';
 import Layout from '@theme/Layout';
 
